@@ -1,4 +1,4 @@
-# PivcardsAndMore Support Ticket System
+# Support Ticket System
 
 A web-based support ticket system using Vector-SDK compiled to WebAssembly (WASM) that allows users to create support tickets via direct messages to an admin using the Nostr protocol.
 
