@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PivcardsAndMore Support Ticket System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            min-height: 150px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            display: block;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            display: block;
+        }
+        .loading {
+            background-color: #d9edf7;
+            color: #31708f;
+            display: block;
+        }
+        .info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Support Ticket System</h1>
+
+        <div class="form-group">
+            <label for="message">Support Message:</label>
+            <textarea id="message" placeholder="Describe your issue or request..."></textarea>
+            <div class="info">Your message will be sent securely to our support team via Nostr protocol.</div>
+        </div>
+
+        <button id="submitBtn" disabled>Send Support Ticket</button>
+
+        <div id="status" class="status"></div>
+
+        <div id="debugInfo" style="margin-top: 20px; font-family: monospace; font-size: 12px; display: none;"></div>
+    </div>
+
+    <script type="module">
+        // Import the WASM module
+        import init, { WasmVectorBot } from './pkg/wasm_support.js';
+
+        let bot = null;
+        let initializing = true;
+
+        // Initialize WASM
+        async function initWasm() {
+            try {
+                await init();
+                console.log('WASM module initialized');
+
+                // Create the bot using the static create method
+                bot = await WasmVectorBot.create();
+                console.log('Bot created');
+
+                // Get public key
+                const publicKey = bot.get_public_key();
+                console.log('Bot public key:', publicKey);
+                document.getElementById('debugInfo').textContent = `Bot Public Key: ${publicKey}`;
+                document.getElementById('debugInfo').style.display = 'block';
+
+                initializing = false;
+                document.getElementById('submitBtn').disabled = false;
+            } catch (error) {
+                console.error('Error initializing WASM:', error);
+                showStatus('error', `Failed to initialize: ${error.message}`);
+            }
+        }
+
+        // Submit support ticket
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const message = document.getElementById('message').value.trim();
+            if (!message) {
+                showStatus('error', 'Please enter a message');
+                return;
+            }
+
+            document.getElementById('submitBtn').disabled = true;
+            showStatus('loading', 'Sending support ticket...');
+
+            try {
+                const result = await bot.send_support_ticket(message);
+                showStatus('success', result);
+                document.getElementById('message').value = '';
+            } catch (error) {
+                showStatus('error', `Failed to send: ${error}`);
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        // Show status message
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', initWasm);
+    </script>
+</body>
+</html>

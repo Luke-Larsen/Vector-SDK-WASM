@@ -1,0 +1,27 @@
+{
+  "name": "support-ticket-system",
+  "version": "1.0.0",
+  "description": "Support ticket system using Vector-SDK compiled to WASM",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "cd wasm-support && wasm-pack build --target web && cd .. && cp -r wasm-support/pkg ./pkg",
+    "build:release": "cd wasm-support && wasm-pack build --target web --release && cd .. && cp -r wasm-support/pkg ./pkg"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "wasm-pack": "^0.12.1"
+  },
+  "keywords": [
+    "nostr",
+    "support",
+    "tickets",
+    "wasm",
+    "vector"
+  ],
+  "author": "",
+  "license": "MIT"
+}
