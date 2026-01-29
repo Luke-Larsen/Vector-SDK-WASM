@@ -1,80 +1,128 @@
-# Support Ticket System
+# Vector-SDK WASM Support Ticket System
 
-A web-based support ticket system using Vector-SDK compiled to WebAssembly (WASM) that allows users to create support tickets via direct messages to an admin using the Nostr protocol.
+A support ticket system built using the Vector-SDK compiled to WebAssembly (WASM), allowing users to create support tickets that are sent directly to an admin via Nostr protocol.
 
 ## Features
 
-- **Web-based interface**: Simple, intuitive form for creating support tickets
-- **Secure messaging**: Uses Nostr protocol with end-to-end encryption
-- **WASM integration**: Vector-SDK compiled to WebAssembly for browser execution
-- **Admin notification**: Support tickets are sent directly to the admin npub
-- **Real-time feedback**: Status updates during initialization and message sending
-
-## Requirements
-
-- Node.js (v16 or later)
-- Rust (v1.75 or later)
-- wasm-pack
-- npm or yarn
+- ✅ WASM compilation of Vector-SDK for browser/Node.js
+- ✅ Support ticket form with message input
+- ✅ File attachment support (optional)
+- ✅ Direct messaging to admin via Nostr
+- ✅ Encrypted private messages
+- ✅ Responsive web interface
+- ✅ Standalone application packaging
 
 ## Installation
 
-1. **Install dependencies**:
 ```bash
-npm install
-```
+# Clone the repository
+git clone https://github.com/your-repo/vector-sdk-wasm.git
+cd vector-sdk-wasm
 
-2. **Build the WASM module**:
-```bash
+# Install dependencies
+npm install
+
+# Build the WASM module
 npm run build
 ```
 
-## Running the Application
+## Usage
 
-1. **Start the server**:
+### Development Mode
+
 ```bash
+# Start the development server
+npm start
+
+# Open your browser to http://localhost:3000
+```
+
+### Production Mode
+
+```bash
+# Build optimized release
+npm run build:release
+
+# Start the server
 npm start
 ```
 
-2. **Open your browser** and navigate to:
-```
-http://localhost:3000
+## Packaging for Distribution
+
+To create a standalone package:
+
+```bash
+# Build the WASM module
+npm run build
+
+# Create distribution package
+npm run package
+
+# The package will be created in the dist/ directory
 ```
 
 ## How It Works
 
-1. The application initializes a VectorBot instance in the browser using WASM
-2. Users can enter their support message in the text area
-3. When submitted, the message is sent as a private direct message to the admin via Nostr
-4. The admin receives the support ticket through their Nostr client
+1. **WASM Initialization**: The Vector-SDK is compiled to WASM and loaded in the browser
+2. **Bot Creation**: A new bot instance is created with generated keys
+3. **Relay Connection**: The bot connects to Nostr relays
+4. **Ticket Submission**: Users submit support tickets via a web form
+5. **Message Sending**: Messages are sent as encrypted private messages to the admin
+
+## File Structure
+
+```
+vector-sdk-wasm/
+├── Vector-SDK/          # Original Vector-SDK source
+├── wasm-support/        # WASM-compatible wrapper
+├── pkg/                 # Compiled WASM artifacts
+├── index.html           # Web interface
+├── server.js            # Simple HTTP server
+├── package.json         # Project configuration
+└── README.md            # This file
+```
+
+## API Reference
+
+### WASM Module
+
+```javascript
+import init, { WasmVectorBot } from './pkg/wasm_support.js';
+
+// Initialize WASM
+await init();
+
+// Create a bot instance
+const bot = await WasmVectorBot.create();
+
+// Get bot public key
+const publicKey = bot.get_public_key();
+
+// Send support ticket
+const result = await bot.send_support_ticket("Your support message");
+
+// Send support ticket with file
+const fileData = new Uint8Array(await file.arrayBuffer());
+const result = await bot.send_support_ticket_with_file(
+    "Your support message",
+    "filename.txt",
+    fileData
+);
+```
 
 ## Configuration
 
-The admin npub is hardcoded in the WASM module:
-```
-npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy
-```
+Edit `wasm-support/src/lib.rs` to configure:
 
-To change the admin, modify the `send_support_ticket` function in `Vector-SDK/src/wasm.rs`.
+- Admin npub (line 97)
+- Default relays (lines 33-42)
 
-## Technical Details
+## Requirements
 
-- **Frontend**: HTML/CSS/JavaScript with WASM integration
-- **Backend**: Node.js Express server
-- **Messaging**: Nostr protocol with private direct messages
-- **Encryption**: AES-GCM for message encryption
-- **Build**: wasm-pack for Rust to WASM compilation
-
-## Development
-
-For development with hot-reloading, you can use:
-
-```bash
-npm run build
-npm start
-```
-
-Then open `http://localhost:3000` in your browser.
+- Node.js 16+
+- Rust 1.60+
+- wasm-pack
+- npm or yarn
 
 ## License
 

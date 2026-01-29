@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use nostr_sdk::prelude::*;
-use js_sys::Promise;
+use js_sys::{Promise, Uint8Array};
 use web_sys::console;
 use std::sync::Arc;
 
@@ -108,6 +108,37 @@ impl WasmVectorBot {
                 Err(e) => {
                     console::error_1(&format!("Failed to send support ticket: {:?}", e).into());
                     Err(JsValue::from_str(&format!("Failed to send support ticket: {:?}", e)))
+                }
+            }
+        };
+
+        wasm_bindgen_futures::future_to_promise(future)
+    }
+
+    /// Send a support ticket with file attachment
+    #[wasm_bindgen]
+    pub fn send_support_ticket_with_file(&self, message: String, file_name: String, file_data: Uint8Array) -> Promise {
+        let client = self.client.clone();
+        let file_bytes = file_data.to_vec();
+
+        let future = async move {
+            let recipient = match PublicKey::from_bech32("npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy") {
+                Ok(pk) => pk,
+                Err(e) => {
+                    console::error_1(&format!("Invalid admin npub: {}", e).into());
+                    return Err(JsValue::from_str(&format!("Invalid admin npub: {}", e)));
+                }
+            };
+
+            // Create a simple message with file info
+            let msg_with_file = format!("{} [File attached: {} ({} bytes)]", message, file_name, file_bytes.len());
+
+            // Send private message
+            match client.send_private_msg(recipient, &msg_with_file, []).await {
+                Ok(_) => Ok(JsValue::from_str("Support ticket with file sent successfully")),
+                Err(e) => {
+                    console::error_1(&format!("Failed to send support ticket with file: {:?}", e).into());
+                    Err(JsValue::from_str(&format!("Failed to send support ticket with file: {:?}", e)))
                 }
             }
         };
