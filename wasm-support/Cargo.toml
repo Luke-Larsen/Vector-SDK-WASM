@@ -13,3 +13,4 @@ web-sys = { version = "0.3", features = ["console"] }
 wasm-bindgen-futures = "0.4"
 nostr-sdk = { version = "0.43", features = ["nip04", "nip06", "nip44", "nip59", "nip96"] }
 tokio = { version = "1.46.1", features = ["rt"] }
+futures = "0.3"

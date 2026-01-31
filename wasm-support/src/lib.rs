@@ -1,18 +1,32 @@
 use wasm_bindgen::prelude::*;
 use nostr_sdk::prelude::*;
-use js_sys::{Promise, Uint8Array};
+use js_sys::{Promise, Uint8Array, Function};
 use web_sys::console;
 use std::sync::Arc;
+use std::time::Duration;
 
 /// WASM-compatible VectorBot wrapper
 #[wasm_bindgen]
 pub struct WasmVectorBot {
     keys: Arc<Keys>,
     client: Arc<Client>,
+    message_callback: Option<Function>,
 }
 
 #[wasm_bindgen]
 impl WasmVectorBot {
+    /// Set a callback function to receive incoming messages
+    #[wasm_bindgen]
+    pub fn set_message_callback(&mut self, callback: Function) {
+        self.message_callback = Some(callback);
+    }
+
+    /// Clear the message callback
+    #[wasm_bindgen]
+    pub fn clear_message_callback(&mut self) {
+        self.message_callback = None;
+    }
+
     /// Create a new VectorBot with default metadata
     #[wasm_bindgen]
     pub fn create() -> Promise {
@@ -25,17 +39,17 @@ impl WasmVectorBot {
             let client = Arc::new(client);
 
             // Add default relays
-            if let Err(e) = client.add_relay("wss://relay.damus.io").await {
+            if let Err(e) = client.add_relay("wss://nostr.computingcache.com").await {
                 console::error_1(&format!("Failed to add relay: {:?}", e).into());
                 return Err(JsValue::from_str(&format!("Failed to add relay: {:?}", e)));
             }
 
-            if let Err(e) = client.add_relay("wss://nos.lol").await {
+            if let Err(e) = client.add_relay("wss://jskitty.cat/nostr").await {
                 console::error_1(&format!("Failed to add relay: {:?}", e).into());
                 return Err(JsValue::from_str(&format!("Failed to add relay: {:?}", e)));
             }
 
-            if let Err(e) = client.add_relay("wss://relay.nostr.band").await {
+            if let Err(e) = client.add_relay("wss://auth.nostr1.com").await {
                 console::error_1(&format!("Failed to add relay: {:?}", e).into());
                 return Err(JsValue::from_str(&format!("Failed to add relay: {:?}", e)));
             }
@@ -46,6 +60,7 @@ impl WasmVectorBot {
             Ok(JsValue::from(WasmVectorBot {
                 keys,
                 client,
+                message_callback: None,
             }))
         };
 
@@ -144,6 +159,81 @@ impl WasmVectorBot {
         };
 
         wasm_bindgen_futures::future_to_promise(future)
+    }
+
+    /// Fetch recent messages from admin using gift wrap (Kind::GiftWrap)
+    #[wasm_bindgen]
+    pub fn fetch_messages(&self) -> Promise {
+        let client = self.client.clone();
+        let keys = self.keys.clone();
+        let callback = self.message_callback.clone();
+
+        let future = async move {
+            if callback.is_none() {
+                return Err(JsValue::from_str("No callback set"));
+            }
+
+            let callback = callback.unwrap();
+
+            // Create a filter for gift wrap messages (Kind::GiftWrap)
+            // This is what Vector-SDK uses for receiving messages
+            let filter = Filter::new()
+                .kind(Kind::GiftWrap)
+                .pubkey(keys.public_key())
+                .limit(10); // Limit to 10 most recent messages
+
+            // Fetch messages
+            match client.fetch_events(filter, Duration::from_secs(30)).await {
+                Ok(messages) => {
+                    console::log_1(&format!("Fetched {} gift wrap messages", messages.len()).into());
+
+                    for msg in messages {
+                        // Try to unwrap the gift wrap message
+                        match client.unwrap_gift_wrap(&msg).await {
+                            Ok(unwrapped) => {
+                                // Extract the decrypted content from the unwrapped gift's rumor
+                                let decrypted_content = unwrapped.rumor.content;
+
+                                // Call the JavaScript callback with the decrypted message
+                                if let Err(e) = callback.call2(
+                                    &JsValue::NULL,
+                                    &JsValue::from_str(&decrypted_content),
+                                    &JsValue::from_str(&msg.id.to_string()),
+                                ) {
+                                    console::error_1(&format!("Failed to call callback: {:?}", e).into());
+                                }
+                            }
+                            Err(e) => {
+                                console::error_1(&format!("Failed to unwrap gift wrap message: {:?}", e).into());
+                                // Try to call callback with raw content as fallback
+                                if let Err(e) = callback.call2(
+                                    &JsValue::NULL,
+                                    &JsValue::from_str(&msg.content),
+                                    &JsValue::from_str(&msg.id.to_string()),
+                                ) {
+                                    console::error_1(&format!("Failed to call callback with raw content: {:?}", e).into());
+                                }
+                            }
+                        }
+                    }
+
+                    Ok(JsValue::from_str("Messages fetched successfully"))
+                }
+                Err(e) => {
+                    console::error_1(&format!("Failed to fetch messages: {:?}", e).into());
+                    // Return success even if no messages found to avoid breaking the UI
+                    Ok(JsValue::from_str("No new messages"))
+                }
+            }
+        };
+
+        wasm_bindgen_futures::future_to_promise(future)
+    }
+
+    /// Get the admin public key
+    #[wasm_bindgen]
+    pub fn get_admin_public_key() -> String {
+        "npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy".to_string()
     }
 }
 

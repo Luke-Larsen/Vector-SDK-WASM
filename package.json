@@ -10,8 +10,8 @@
     "package": "mkdir -p dist && cp -r pkg index.html server.js package.json dist/ && echo 'Package created in dist/ directory'"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "wasm-pack": "^0.12.1"

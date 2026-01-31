@@ -107,6 +107,58 @@
             font-size: 14px;
             color: #666;
         }
+        .messages-section {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .messages-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .message-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+        .message-user {
+            background-color: #e3f2fd;
+            text-align: right;
+        }
+        .message-admin {
+            background-color: #f1f1f1;
+            text-align: left;
+        }
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        .refresh-btn {
+            background-color: #2196F3;
+            margin-bottom: 15px;
+        }
+        .refresh-btn:hover {
+            background-color: #0b7dda;
+        }
+        .no-messages {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -135,12 +187,23 @@
         <div id="debugInfo" style="margin-top: 20px; font-family: monospace; font-size: 12px; display: none;"></div>
     </div>
 
+    <div class="container messages-section">
+        <h2 class="messages-title">Support Conversation</h2>
+        <button id="refreshBtn" class="refresh-btn">Refresh Messages</button>
+        <div id="messageList" class="message-list">
+            <div class="no-messages">No messages yet. Send a support ticket to start the conversation.</div>
+        </div>
+    </div>
+
     <script type="module">
         // Import the WASM module
         import init, { WasmVectorBot } from './pkg/wasm_support.js';
 
         let bot = null;
         let fileToUpload = null;
+        let messages = [];
+        let pollInterval = null;
+        let isPolling = false;
 
         // Initialize WASM
         async function initWasm() {
@@ -158,11 +221,84 @@
                 document.getElementById('debugInfo').textContent = `Bot Public Key: ${publicKey}`;
                 document.getElementById('debugInfo').style.display = 'block';
 
+                // Set up message callback
+                bot.set_message_callback(messageCallback);
+
+                // Fetch messages on startup
+                await fetchMessages();
+
                 document.getElementById('submitBtn').disabled = false;
+                document.getElementById('refreshBtn').disabled = false;
             } catch (error) {
                 console.error('Error initializing WASM:', error);
                 showStatus('error', `Failed to initialize: ${error.message}`);
             }
+        }
+
+        // Message callback from WASM
+        function messageCallback(message, messageId) {
+            console.log('Received message:', message, 'ID:', messageId);
+
+            // Add the message to our list
+            const newMessage = {
+                id: messageId,
+                content: message,
+                sender: 'admin',
+                timestamp: new Date().toISOString()
+            };
+
+            messages.push(newMessage);
+            addMessageToUI(newMessage);
+
+            // Show notification
+            showStatus('success', 'New message received from admin!');
+        }
+
+        // Fetch messages from admin
+        async function fetchMessages() {
+            try {
+                console.log('Fetching messages...');
+                await bot.fetch_messages();
+                console.log('Messages fetched');
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        }
+
+        // Add a message to the UI
+        function addMessageToUI(message) {
+            const messageList = document.getElementById('messageList');
+            const noMessagesDiv = document.querySelector('.no-messages');
+
+            // Remove "no messages" placeholder if it exists
+            if (noMessagesDiv) {
+                noMessagesDiv.remove();
+            }
+
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${message.sender}`;
+            messageDiv.innerHTML = `
+                <div>${message.content}</div>
+                <div class="message-time">${new Date(message.timestamp).toLocaleString()}</div>
+            `;
+
+            messageList.appendChild(messageDiv);
+
+            // Scroll to bottom
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        // Add a user message to the UI (when they send a message)
+        function addUserMessageToUI(message) {
+            const newMessage = {
+                content: message,
+                sender: 'user',
+                timestamp: new Date().toISOString()
+            };
+
+            messages.push(newMessage);
+            addMessageToUI(newMessage);
         }
 
         // Handle file selection
@@ -184,6 +320,9 @@
                 showStatus('error', 'Please enter a message');
                 return;
             }
+
+            // Add user message to UI immediately
+            addUserMessageToUI(message);
 
             document.getElementById('submitBtn').disabled = true;
             showStatus('loading', 'Sending support ticket...');
@@ -216,6 +355,22 @@
                 showStatus('error', `Failed to send: ${error}`);
             } finally {
                 document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        // Refresh messages button
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
+            document.getElementById('refreshBtn').disabled = true;
+            showStatus('loading', 'Refreshing messages...');
+
+            try {
+                await fetchMessages();
+                showStatus('success', 'Messages refreshed');
+            } catch (error) {
+                console.error('Error refreshing messages:', error);
+                showStatus('error', `Failed to refresh: ${error}`);
+            } finally {
+                document.getElementById('refreshBtn').disabled = false;
             }
         });
 
