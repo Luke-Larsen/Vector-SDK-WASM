@@ -238,8 +238,8 @@
         }
 
         // Message callback from WASM
-        function messageCallback(message, messageId) {
-            console.log('Received message:', message, 'ID:', messageId);
+        function messageCallback(message, messageId, timestamp) {
+            console.log('Received message:', message, 'ID:', messageId, 'Timestamp:', timestamp);
 
             // Check if we've already seen this message
             if (lastMessageIds.has(messageId)) {
@@ -253,12 +253,22 @@
                 return;
             }
 
+            // Convert Unix timestamp (seconds) to ISO string
+            // If timestamp is not provided or invalid, use current time
+            let messageTimestamp;
+            if (timestamp && !isNaN(timestamp)) {
+                // Convert from seconds to milliseconds and create Date object
+                messageTimestamp = new Date(timestamp * 1000).toISOString();
+            } else {
+                messageTimestamp = new Date().toISOString();
+            }
+
             // Add the message to our list
             const newMessage = {
                 id: messageId,
                 content: message,
                 sender: 'admin',
-                timestamp: new Date().toISOString()
+                timestamp: messageTimestamp
             };
 
             messages.push(newMessage);

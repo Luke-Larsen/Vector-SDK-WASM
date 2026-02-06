@@ -194,22 +194,24 @@ impl WasmVectorBot {
                                 // Extract the decrypted content from the unwrapped gift's rumor
                                 let decrypted_content = unwrapped.rumor.content;
 
-                                // Call the JavaScript callback with the decrypted message
-                                if let Err(e) = callback.call2(
+                                // Call the JavaScript callback with the decrypted message, message ID, and original timestamp
+                                if let Err(e) = callback.call3(
                                     &JsValue::NULL,
                                     &JsValue::from_str(&decrypted_content),
                                     &JsValue::from_str(&msg.id.to_string()),
+                                    &JsValue::from_f64(msg.created_at.as_u64() as f64),
                                 ) {
                                     console::error_1(&format!("Failed to call callback: {:?}", e).into());
                                 }
                             }
                             Err(e) => {
                                 console::error_1(&format!("Failed to unwrap gift wrap message: {:?}", e).into());
-                                // Try to call callback with raw content as fallback
-                                if let Err(e) = callback.call2(
+                                // Try to call callback with raw content as fallback, using current time as timestamp
+                                if let Err(e) = callback.call3(
                                     &JsValue::NULL,
                                     &JsValue::from_str(&msg.content),
                                     &JsValue::from_str(&msg.id.to_string()),
+                                    &JsValue::from_f64(msg.created_at.as_u64() as f64),
                                 ) {
                                     console::error_1(&format!("Failed to call callback with raw content: {:?}", e).into());
                                 }
