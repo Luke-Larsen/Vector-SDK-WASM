@@ -196,8 +196,8 @@
     </div>
 
     <script type="module">
-        // Import the Vector-SDK WASM module
-        import init, { WasmVectorBot } from './pkg/vector_sdk.js';
+        // Import the WASM module
+        import init, { WasmVectorBot } from './pkg/wasm_support.js';
 
         let bot = null;
         let fileToUpload = null;
@@ -209,20 +209,10 @@
         async function initWasm() {
             try {
                 await init();
-                console.log('Vector-SDK WASM module initialized');
+                console.log('WASM module initialized');
 
-                // Create the bot
-                const secretKey = 'nsec1...'; // Replace with actual secret key or generate one
-                bot = await WasmVectorBot.new(
-                    secretKey,
-                    'Support Bot',
-                    'Support Bot',
-                    'Vector Support Bot',
-                    'https://example.com/avatar.png',
-                    'https://example.com/banner.png',
-                    'support@example.com',
-                    'support@example.com'
-                );
+                // Create the bot using the static create method
+                bot = await WasmVectorBot.create();
                 console.log('Bot created');
 
                 // Get public key
@@ -231,12 +221,76 @@
                 document.getElementById('debugInfo').textContent = `Bot Public Key: ${publicKey}`;
                 document.getElementById('debugInfo').style.display = 'block';
 
+                // Set up message callback
+                bot.set_message_callback(messageCallback);
+
                 document.getElementById('submitBtn').disabled = false;
                 document.getElementById('refreshBtn').disabled = false;
             } catch (error) {
                 console.error('Error initializing WASM:', error);
                 showStatus('error', `Failed to initialize: ${error.message}`);
             }
+        }
+
+        // Message callback from WASM
+        function messageCallback(message, messageId, timestamp) {
+            console.log('Received message:', message, 'ID:', messageId, 'Timestamp:', timestamp);
+
+            // Check if we've already seen this message
+            if (lastMessageIds.has(messageId)) {
+                console.log('Duplicate message detected, skipping:', messageId);
+                return;
+            }
+
+            // Skip typing indicators
+            if (isTypingIndicator(message)) {
+                console.log('Typing indicator detected, skipping:', message);
+                return;
+            }
+
+            // Convert Unix timestamp (seconds) to ISO string
+            // If timestamp is not provided or invalid, use current time
+            let messageTimestamp;
+            if (timestamp && !isNaN(timestamp)) {
+                // Convert from seconds to milliseconds and create Date object
+                messageTimestamp = new Date(timestamp * 1000).toISOString();
+            } else {
+                messageTimestamp = new Date().toISOString();
+            }
+
+            // Add the message to our list
+            const newMessage = {
+                id: messageId,
+                content: message,
+                sender: 'admin',
+                timestamp: messageTimestamp
+            };
+
+            messages.push(newMessage);
+            addMessageToUI(newMessage);
+
+            // Track this message ID to prevent duplicates
+            lastMessageIds.add(messageId);
+
+            // Show notification
+            showStatus('success', 'New message received from admin!');
+        }
+
+        // Check if a message is a typing indicator
+        function isTypingIndicator(message) {
+            // Common typing indicator patterns in Vector-SDK/Nostr
+            const typingPatterns = [
+                /^typing$/i,
+                /^is typing$/i,
+                /^user is typing$/i,
+                /^admin is typing$/i,
+                /^\uD83D\uDC41$/i, // Typing indicator emoji
+                /^typing...$/i,
+                /^typing$/i,
+                /^typing$/i
+            ];
+
+            return typingPatterns.some(pattern => pattern.test(message));
         }
 
         // Add a user message to the UI (when they send a message)
@@ -298,22 +352,49 @@
             showStatus('loading', 'Sending support ticket...');
 
             try {
-                // Send private message using Vector-SDK
-                const recipient = 'npub1...'; // Replace with actual recipient public key
-                const success = await bot.send_private_message(recipient, message);
+                if (fileToUpload) {
+                    // Read file as ArrayBuffer
+                    const fileBuffer = await fileToUpload.arrayBuffer();
+                    const fileData = new Uint8Array(fileBuffer);
 
-                if (success) {
-                    showStatus('success', 'Support ticket sent successfully!');
+                    // Send with file attachment
+                    const result = await bot.send_support_ticket_with_file(
+                        message,
+                        fileToUpload.name,
+                        fileData
+                    );
+                    showStatus('success', result);
                 } else {
-                    showStatus('error', 'Failed to send support ticket');
+                    // Send without file
+                    const result = await bot.send_support_ticket(message);
+                    showStatus('success', result);
                 }
 
                 // Reset form
                 document.getElementById('message').value = '';
+                document.getElementById('fileInput').value = '';
+                document.getElementById('fileName').textContent = 'No file selected';
+                fileToUpload = null;
             } catch (error) {
                 showStatus('error', `Failed to send: ${error}`);
             } finally {
                 document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        // Refresh messages button
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
+            document.getElementById('refreshBtn').disabled = true;
+            showStatus('loading', 'Refreshing messages...');
+
+            try {
+                await bot.fetch_messages();
+                showStatus('success', 'Messages refreshed');
+            } catch (error) {
+                console.error('Error refreshing messages:', error);
+                showStatus('error', `Failed to refresh: ${error}`);
+            } finally {
+                document.getElementById('refreshBtn').disabled = false;
             }
         });
 

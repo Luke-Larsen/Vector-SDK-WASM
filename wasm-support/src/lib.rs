@@ -187,7 +187,11 @@ impl WasmVectorBot {
                 Ok(messages) => {
                     console::log_1(&format!("Fetched {} gift wrap messages", messages.len()).into());
 
-                    for msg in messages {
+                    // Convert to vector and sort by timestamp (oldest first) to ensure proper ordering
+                    let mut sorted_messages: Vec<_> = messages.into_iter().collect();
+                    sorted_messages.sort_by_key(|msg| msg.created_at);
+
+                    for msg in sorted_messages {
                         // Try to unwrap the gift wrap message
                         match client.unwrap_gift_wrap(&msg).await {
                             Ok(unwrapped) => {
