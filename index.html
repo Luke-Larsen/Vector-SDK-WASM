@@ -321,7 +321,7 @@
             messageDiv.className = `message message-${message.sender}`;
             messageDiv.innerHTML = `
                 <div>${message.content}</div>
-                <div class="message-time">${new Date(message.timestamp).toLocaleString()}</div>
+                <div class="message-time">${message.timestamp}</div>
             `;
 
             messageList.appendChild(messageDiv);
