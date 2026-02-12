@@ -35,18 +35,7 @@ impl WasmVectorBot {
             let keys = Arc::new(Keys::generate());
 
             // Create a simple client without MLS using trait object
-            let client = Client::new(Arc::clone(&keys) as Arc<dyn NostrSigner>);
-
-            // Set bot metadata with custom_field("bot", true)
-            let metadata = Metadata::new()
-                .name("wasm-support bot")
-                .display_name("WASM Support Bot")
-                .about("WASM support bot for Vector SDK")
-                .custom_field("bot", true);
-
-            let _ = client.set_metadata(&metadata).await;
-
-            let client = Arc::new(client);
+            let mut client = Client::new(Arc::clone(&keys) as Arc<dyn NostrSigner>);
 
             // Add default relays
             if let Err(e) = client.add_relay("wss://nostr.computingcache.com").await {
@@ -66,6 +55,17 @@ impl WasmVectorBot {
 
             // Connect to relays
             client.connect().await;
+
+            // Set bot metadata with custom_field("bot", true) after connecting to relays
+            let metadata = Metadata::new()
+                .name("wasm-support bot")
+                .display_name("WASM Support Bot")
+                .about("WASM support bot for Vector SDK")
+                .custom_field("bot", true);
+
+            let _ = client.set_metadata(&metadata).await;
+
+            let client = Arc::new(client);
 
             Ok(JsValue::from(WasmVectorBot {
                 keys,
