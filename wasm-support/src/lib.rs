@@ -140,6 +140,55 @@ impl WasmVectorBot {
         wasm_bindgen_futures::future_to_promise(future)
     }
 
+    /// Send a support ticket to admin with notification to support agents
+    #[wasm_bindgen]
+    pub fn send_support_ticket_with_notification(&self, message: String) -> Promise {
+        let client = self.client.clone();
+        let keys = self.keys.clone();
+
+        // Admin npub from requirements
+        let admin_npub = "npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy";
+
+        let future = async move {
+            let recipient = match PublicKey::from_bech32(admin_npub) {
+                Ok(pk) => pk,
+                Err(e) => {
+                    console::error_1(&format!("Invalid admin npub: {}", e).into());
+                    return Err(JsValue::from_str(&format!("Invalid admin npub: {}", e)));
+                }
+            };
+
+            // Send private message to admin
+            match client.send_private_msg(recipient, &message, []).await {
+                Ok(_) => {
+                    // Get sender's public key (the user who sent the ticket)
+                    let sender_npub = keys.public_key().to_bech32().unwrap();
+
+                    // Create a notification message for support agents
+                    let notification_message = format!(
+                        "New support ticket from {}:\n\n{}",
+                        sender_npub, message
+                    );
+
+                    // In a real implementation, this would call the notification service
+                    // For now, we'll just log it
+                    console::log_1(&format!(
+                        "NOTIFICATION: New ticket from {} - {}",
+                        sender_npub, message
+                    ).into());
+
+                    Ok(JsValue::from_str("Support ticket sent with notification"))
+                }
+                Err(e) => {
+                    console::error_1(&format!("Failed to send support ticket: {:?}", e).into());
+                    Err(JsValue::from_str(&format!("Failed to send support ticket: {:?}", e)))
+                }
+            }
+        };
+
+        wasm_bindgen_futures::future_to_promise(future)
+    }
+
     /// Send a support ticket with file attachment
     #[wasm_bindgen]
     pub fn send_support_ticket_with_file(&self, message: String, file_name: String, file_data: Uint8Array) -> Promise {

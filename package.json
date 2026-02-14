@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:notifications": "node notification-service.js",
     "build": "cd wasm-support && wasm-pack build --target web && cd .. && cp -r wasm-support/pkg ./pkg",
     "build:release": "cd wasm-support && wasm-pack build --target web --release && cd .. && cp -r wasm-support/pkg ./pkg",
     "package": "mkdir -p dist && cp -r pkg index.html server.js package.json dist/ && echo 'Package created in dist/ directory'"

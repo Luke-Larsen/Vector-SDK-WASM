@@ -365,8 +365,8 @@
                     );
                     showStatus('success', result);
                 } else {
-                    // Send without file
-                    const result = await bot.send_support_ticket(message);
+                    // Send without file - use notification version
+                    const result = await bot.send_support_ticket_with_notification(message);
                     showStatus('success', result);
                 }
 
