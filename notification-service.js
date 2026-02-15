@@ -1,8 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const wasm_support = require('./pkg/wasm_support.js');
-const { WasmVectorBot } = wasm_support;
-const init = wasm_support.default;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,6 +11,9 @@ const SUPPORT_AGENTS = [
 ];
 
 let notificationBot = null;
+let wasm_support = null;
+let WasmVectorBot = null;
+let init = null;
 
 app.use(cors());
 app.use(express.json());
@@ -21,7 +21,17 @@ app.use(express.json());
 // Initialize WASM and notification bot
 async function initNotificationService() {
     try {
-        await init();
+        // Dynamically import the ES module - use .mjs extension to force ES module mode
+        wasm_support = await import('./pkg/wasm_support.mjs');
+        WasmVectorBot = wasm_support.WasmVectorBot;
+        initSync = wasm_support.initSync;
+
+        // Read the WASM file synchronously
+        const fs = require('fs');
+        const wasmBuffer = fs.readFileSync('./pkg/wasm_support_bg.wasm');
+
+        // Initialize WASM synchronously
+        initSync(wasmBuffer);
         console.log('WASM module initialized for notification service');
 
         // Create notification bot with static key
@@ -33,6 +43,7 @@ async function initNotificationService() {
         // notificationBot.set_message_callback(messageCallback);
     } catch (error) {
         console.error('Error initializing notification service:', error);
+        console.error('Full error:', error.stack);
         process.exit(1);
     }
 }
