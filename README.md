@@ -12,6 +12,11 @@ A support ticket system built using the Vector-SDK compiled to WebAssembly (WASM
 - ✅ Responsive web interface
 - ✅ Standalone application packaging
 - ✅ Secondary notification bot for support agent alerts
+- ✅ **One-line embed** for easy integration into any website
+- ✅ Multiple instances on the same page
+- ✅ Highly customizable via HTML data attributes
+- ✅ Minimal styling for easy integration
+- ✅ Self-hosting support
 
 ## Installation
 
@@ -28,6 +33,29 @@ npm run build
 ```
 
 ## Usage
+
+### One-Line Embed (Recommended)
+
+The easiest way to add support to your website is with a one-line embed:
+
+```html
+<script src="https://your-cdn.com/vector-support-embed.min.js" data-admin-npub="npub1..."></script>
+```
+
+**Basic Usage:**
+```html
+<script src="vector-support-embed.min.js" data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"></script>
+```
+
+**Customized:**
+```html
+<script src="vector-support-embed.min.js"
+        data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+        data-button-text="Contact Support"
+        data-button-color="#007bff"
+        data-show-files="true">
+</script>
+```
 
 ### Development Mode
 
@@ -46,6 +74,64 @@ npm run build:release
 
 # Start the server
 npm start
+```
+
+### Self-Hosting the Embed
+
+To self-host the embed on your own website:
+
+```bash
+# Build optimized WASM artifacts
+npm run build:release
+
+# Copy embed files to your project
+cp vector-support-embed.min.js /path/to/your/project/
+cp -r pkg /path/to/your/project/
+```
+
+Then include in your HTML:
+```html
+<script src="/vector-support-embed.min.js" data-admin-npub="npub1..."></script>
+```
+
+### Multiple Instances
+
+You can have multiple embed instances on the same page:
+
+```html
+<script src="vector-support-embed.min.js"
+        data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+        data-button-text="Technical Support"
+        data-button-color="#28a745">
+</script>
+
+<script src="vector-support-embed.min.js"
+        data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+        data-button-text="Billing Support"
+        data-button-color="#007bff"
+        data-position="inline">
+</script>
+```
+
+### With Callback
+
+Track submissions with a callback function:
+
+```html
+<script src="vector-support-embed.min.js"
+        data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+        data-on-submit="handleSupportSubmit">
+</script>
+<script>
+function handleSupportSubmit(data) {
+    if (data.success) {
+        console.log('Support ticket submitted:', data);
+        // Track analytics, show custom message, etc.
+    } else {
+        console.error('Error:', data.error);
+    }
+}
+</script>
 ```
 
 ## Packaging for Distribution
@@ -113,6 +199,25 @@ const result = await bot.send_support_ticket_with_file(
 ```
 
 ## Configuration
+
+### Embed Configuration Options
+
+All configuration is done via HTML `data-*` attributes:
+
+| Attribute | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| `data-admin-npub` | **Required** Admin's Nostr public key | None | `npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy` |
+| `data-button-text` | Button text | `Get Support` | `Contact Us` |
+| `data-button-color` | Button background color | `#4CAF50` | `#007bff` |
+| `data-position` | Embed position | `fixed` | `inline` or CSS selector |
+| `data-show-files` | Enable file uploads | `false` | `true` |
+| `data-placeholder` | Textarea placeholder | `Describe your issue...` | `How can we help you?` |
+| `data-success-message` | Success message | `Support ticket sent!` | `Thank you! We'll contact you soon.` |
+| `data-on-submit` | JavaScript callback | None | `handleSupportSubmit` |
+| `data-custom-container` | Custom container selector | None | `#support-container` |
+| `data-relays` | Custom Nostr relays | Default relays | `wss://your-relay.com` |
+
+### WASM Configuration
 
 Edit `wasm-support/src/lib.rs` to configure:
 
@@ -216,3 +321,72 @@ const SUPPORT_AGENTS = [
 ## License
 
 MIT
+
+## Embed Implementation Details
+
+### How It Works
+
+1. **Auto-Initialization**: The embed script automatically initializes when the page loads
+2. **WASM Loading**: The Vector-SDK WASM module is loaded asynchronously
+3. **Bot Creation**: A Nostr bot is created for each embed instance
+4. **Message Sending**: Support tickets are sent as encrypted private messages via Nostr
+5. **Multiple Instances**: Each embed maintains its own state and configuration
+
+### File Structure for Embed
+
+```
+vector-support-embed/
+├── vector-support-embed.js        # Full source (for development)
+├── vector-support-embed.min.js     # Minified version (for production)
+├── wasm_support.js                 # WASM JS glue code
+├── wasm_support_bg.wasm            # Compiled WASM module
+└── pkg/                           # WASM package directory
+```
+
+### Customization
+
+The embed uses Shadow DOM for styling isolation, allowing you to style it with CSS variables:
+
+```css
+vector-support-embed {
+    --button-color: #007bff;
+    --button-text: 'Contact Support';
+}
+```
+
+### Browser Support
+
+- Modern browsers with WebAssembly support
+- Custom Elements v1 API
+- Shadow DOM (optional, for styling isolation)
+
+### Troubleshooting
+
+**Issue: Embed doesn't appear**
+- Ensure `data-admin-npub` is set
+- Check browser console for errors
+- Verify WASM files are accessible
+
+**Issue: WASM module fails to load**
+- Ensure all WASM files are in the correct location
+- Check CORS settings if loading from a different domain
+- Verify the WASM module is built with `npm run build:release`
+
+**Issue: Messages not sending**
+- Verify the admin npub is correct
+- Check Nostr relay connectivity
+- Ensure the bot has proper permissions
+```
+
+### Testing the Embed
+
+A test page is included to verify the embed functionality:
+
+```bash
+# Start the server
+npm start
+
+# Open http://localhost:3000/embed-test.html
+```
+
+The test page demonstrates all configuration options and allows you to test the embed before deploying to your production site.

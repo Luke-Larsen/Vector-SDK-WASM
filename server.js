@@ -13,6 +13,15 @@ app.use(cors());
 app.use(express.static('pkg'));
 app.use(express.static('public'));
 
+// Serve HTML files
+app.get('/embed-test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'embed-test.html'));
+});
+
+app.get('/test-embed', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test-embed.html'));
+});
+
 // Serve index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

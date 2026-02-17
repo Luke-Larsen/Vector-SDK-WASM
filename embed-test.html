@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Support Embed - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #666;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .example {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        code {
+            font-family: 'Courier New', monospace;
+        }
+        .note {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .success {
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vector Support Embed - Test Page</h1>
+
+        <p>This page demonstrates the one-line embed functionality for the Vector-SDK WASM support ticket system.</p>
+
+        <div class="note">
+            <strong>Note:</strong> The embed will appear at the bottom right of this page (fixed position).
+        </div>
+
+        <h2>Examples</h2>
+
+        <div class="example">
+            <h3>Basic Embed</h3>
+            <pre><script src="vector-support-embed.js" data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"></script></pre>
+        </div>
+
+        <div class="example">
+            <h3>Custom Button Text and Color</h3>
+            <pre><script src="vector-support-embed.js"
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-button-text="Contact Us"
+data-button-color="#007bff"></script></pre>
+        </div>
+
+        <div class="example">
+            <h3>With File Uploads</h3>
+            <pre><script src="vector-support-embed.js"
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-show-files="true"></script></pre>
+        </div>
+
+        <div class="example">
+            <h3>Inline Position</h3>
+            <pre><script src="vector-support-embed.js"
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-position="inline"></script></pre>
+        </div>
+
+        <div class="example">
+            <h3>With Callback</h3>
+            <pre><script src="vector-support-embed.js"
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-on-submit="handleSupportSubmit"></script>
+<script>
+function handleSupportSubmit(data) {
+    console.log('Support ticket submitted:', data);
+    // Track analytics or show custom message
+}
+</script></pre>
+        </div>
+
+        <h2>Configuration Options</h2>
+
+        <table border="1" cellpadding="10" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr style="background-color: #f8f9fa;">
+                <th>Attribute</th>
+                <th>Description</th>
+                <th>Default Value</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td><code>data-admin-npub</code></td>
+                <td>Admin's Nostr public key (required)</td>
+                <td>None (required)</td>
+                <td><code>npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy</code></td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td><code>data-button-text</code></td>
+                <td>Button text</td>
+                <td><code>Get Support</code></td>
+                <td><code>Contact Us</code></td>
+            </tr>
+            <tr>
+                <td><code>data-button-color</code></td>
+                <td>Button background color</td>
+                <td><code>#4CAF50</code></td>
+                <td><code>#007bff</code></td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td><code>data-position</code></td>
+                <td>Embed position (fixed, inline, or custom)</td>
+                <td><code>fixed</code></td>
+                <td><code>inline</code></td>
+            </tr>
+            <tr>
+                <td><code>data-show-files</code></td>
+                <td>Enable file uploads (true/false)</td>
+                <td><code>false</code></td>
+                <td><code>true</code></td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td><code>data-placeholder</code></td>
+                <td>Textarea placeholder</td>
+                <td><code>Describe your issue...</code></td>
+                <td><code>How can we help you?</code></td>
+            </tr>
+            <tr>
+                <td><code>data-success-message</code></td>
+                <td>Success message after submission</td>
+                <td><code>Support ticket sent!</code></td>
+                <td><code>Thank you! We'll contact you soon.</code></td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td><code>data-on-submit</code></td>
+                <td>JavaScript callback function name</td>
+                <td>None</td>
+                <td><code>handleSupportSubmit</code></td>
+            </tr>
+            <tr>
+                <td><code>data-custom-container</code></td>
+                <td>CSS selector for custom positioning</td>
+                <td>None</td>
+                <td><code>#support-container</code></td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td><code>data-relays</code></td>
+                <td>Custom Nostr relays (comma-separated)</td>
+                <td><code>wss://nostr.computingcache.com,wss://jskitty.cat/nostr,wss://auth.nostr1.com</code></td>
+                <td><code>wss://your-relay.com</code></td>
+            </tr>
+        </table>
+
+        <h2>Multiple Instances</h2>
+
+        <p>You can have multiple embed instances on the same page:</p>
+
+        <pre><script src="vector-support-embed.js"
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-button-text="Technical Support"
+data-button-color="#28a745"></script>
+
+<script src="vector-support-embed.js"
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-button-text="Billing Support"
+data-button-color="#007bff"
+data-position="inline"></script></pre>
+
+        <div class="success">
+            <strong>Success!</strong> The embed is working correctly. Click the "Get Support" button at the bottom right to test it.
+        </div>
+    </div>
+
+    <!-- Embed Script -->
+    <script src="vector-support-embed.js" data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"></script>
+
+    <!-- Optional: Add callback for tracking -->
+    <script>
+    function handleSupportSubmit(data) {
+        if (data.success) {
+            console.log('Support ticket submitted successfully:', data);
+        } else {
+            console.error('Support ticket submission failed:', data.error);
+        }
+    }
+    </script>
+</body>
+</html>

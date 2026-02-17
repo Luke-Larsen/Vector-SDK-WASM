@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Support Embed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .info {
+            background-color: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vector Support Embed Test</h1>
+
+        <div class="info">
+            <strong>Test Instructions:</strong>
+            <ol>
+                <li>Click the "Get Support" button that should appear at the bottom right</li>
+                <li>A modal will open for entering a support message</li>
+                <li>Enter a test message and click "Send"</li>
+                <li>Check the browser console for the submission result</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>Embed Configuration</h2>
+            <p>This page includes the Vector Support Embed with the following configuration:</p>
+            <pre>
+data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
+data-button-text="Get Support"
+data-button-color="#007bff"
+data-show-files="false"
+            </pre>
+        </div>
+
+        <div class="test-section">
+            <h2>Console Output</h2>
+            <p>Check your browser's console (F12 > Console) for:</p>
+            <ul>
+                <li>WASM initialization messages</li>
+                <li>Bot creation status</li>
+                <li>Submission success/error messages</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Vector Support Embed -->
+    <script src="vector-support-embed.js" data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy" data-button-text="Get Support" data-button-color="#007bff" data-show-files="false"></script>
+
+    <!-- Optional callback for testing -->
+    <script>
+    function handleSupportSubmit(data) {
+        if (data.success) {
+            console.log('✅ Support ticket submitted successfully:', data);
+            alert('Support ticket sent successfully!');
+        } else {
+            console.error('❌ Support ticket submission failed:', data.error);
+            alert('Error: ' + data.error);
+        }
+    }
+    </script>
+</body>
+</html>
