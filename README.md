@@ -386,7 +386,7 @@ A test page is included to verify the embed functionality:
 # Start the server
 npm start
 
-# Open http://localhost:3000/embed-test.html
+# Open http://localhost:3000/test-embed
 ```
 
 The test page demonstrates all configuration options and allows you to test the embed before deploying to your production site.

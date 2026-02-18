@@ -12,6 +12,7 @@ app.use(cors());
 // Serve static files
 app.use(express.static('pkg'));
 app.use(express.static('public'));
+app.use(express.static('.')); // Serve files from root directory
 
 // Serve HTML files
 app.get('/embed-test', (req, res) => {
@@ -35,6 +36,17 @@ app.get('/pkg/:file', (req, res) => {
     } else {
         res.status(404).send('File not found');
     }
+});
+
+// Serve embed JavaScript files with correct MIME type
+app.get('/vector-support-embed.js', (req, res) => {
+    res.set('Content-Type', 'application/javascript');
+    res.sendFile(path.join(__dirname, 'vector-support-embed.js'));
+});
+
+app.get('/vector-support-embed.min.js', (req, res) => {
+    res.set('Content-Type', 'application/javascript');
+    res.sendFile(path.join(__dirname, 'vector-support-embed.min.js'));
 });
 
 // Start server
