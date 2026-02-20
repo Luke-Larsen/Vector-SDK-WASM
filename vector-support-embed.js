@@ -331,7 +331,8 @@
                 // Dynamically import the WASM module
                 const wasmSupport = await import('./pkg/wasm_support.js');
                 this.wasmModule = wasmSupport;
-                // The init function is called automatically by wasm-bindgen
+                // Initialize the WASM module
+                await wasmSupport.default();
                 this.wasmLoaded = true;
             } catch (error) {
                 console.error('Vector Support Embed: Failed to load WASM module', error);
@@ -345,8 +346,8 @@
             try {
                 // Wait for the WASM module to be fully initialized
                 await new Promise(resolve => setTimeout(resolve, 100));
-                const wasmExports = this.wasmModule.default || this.wasmModule;
-                this.bot = await wasmExports.WasmVectorBot.create();
+                // WasmVectorBot is exported directly from the module
+                this.bot = await this.wasmModule.WasmVectorBot.create();
                 console.log(`Vector Support Embed #${this.instanceId}: Bot initialized`);
             } catch (error) {
                 console.error(`Vector Support Embed #${this.instanceId}: Failed to initialize bot`, error);
