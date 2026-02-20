@@ -28,10 +28,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Serve WASM files
+// Serve WASM files with correct MIME types
 app.get('/pkg/:file', (req, res) => {
     const filePath = path.join(__dirname, 'pkg', req.params.file);
     if (fs.existsSync(filePath)) {
+        // Set appropriate MIME type based on file extension
+        const ext = path.extname(filePath);
+        if (ext === '.wasm') {
+            res.set('Content-Type', 'application/wasm');
+        } else if (ext === '.js') {
+            res.set('Content-Type', 'application/javascript');
+        } else if (ext === '.json') {
+            res.set('Content-Type', 'application/json');
+        }
         res.sendFile(filePath);
     } else {
         res.status(404).send('File not found');

@@ -24,16 +24,18 @@
     let instanceCounter = 0;
 
     // Main embed class
-    class VectorSupportEmbed {
-        constructor(element) {
-            this.element = element;
+    class VectorSupportEmbed extends HTMLElement {
+        constructor() {
+            super();
             this.instanceId = `vector-support-${instanceCounter++}`;
             this.config = {};
             this.bot = null;
             this.wasmLoaded = false;
             this.initialized = false;
             this.isSubmitting = false;
+        }
 
+        connectedCallback() {
             this.init();
         }
 
@@ -57,7 +59,7 @@
             const config = {};
 
             // Required: admin npub
-            const adminNpub = this.element.getAttribute('data-admin-npub');
+            const adminNpub = this.getAttribute('data-admin-npub');
             if (!adminNpub) {
                 console.error('Vector Support Embed: data-admin-npub is required');
                 return;
@@ -65,22 +67,22 @@
             config.adminNpub = adminNpub;
 
             // Optional configurations
-            config.buttonText = this.element.getAttribute('data-button-text') || DEFAULTS.buttonText;
-            config.buttonColor = this.element.getAttribute('data-button-color') || DEFAULTS.buttonColor;
-            config.position = this.element.getAttribute('data-position') || DEFAULTS.position;
-            config.showFiles = this.element.getAttribute('data-show-files') === 'true';
-            config.placeholder = this.element.getAttribute('data-placeholder') || DEFAULTS.placeholder;
-            config.successMessage = this.element.getAttribute('data-success-message') || DEFAULTS.successMessage;
-            config.onSubmit = this.element.getAttribute('data-on-submit');
-            config.customContainer = this.element.getAttribute('data-custom-container');
-            config.relays = this.element.getAttribute('data-relays') || DEFAULTS.relays;
+            config.buttonText = this.getAttribute('data-button-text') || DEFAULTS.buttonText;
+            config.buttonColor = this.getAttribute('data-button-color') || DEFAULTS.buttonColor;
+            config.position = this.getAttribute('data-position') || DEFAULTS.position;
+            config.showFiles = this.getAttribute('data-show-files') === 'true';
+            config.placeholder = this.getAttribute('data-placeholder') || DEFAULTS.placeholder;
+            config.successMessage = this.getAttribute('data-success-message') || DEFAULTS.successMessage;
+            config.onSubmit = this.getAttribute('data-on-submit');
+            config.customContainer = this.getAttribute('data-custom-container');
+            config.relays = this.getAttribute('data-relays') || DEFAULTS.relays;
 
             this.config = config;
         }
 
         createContainer() {
             // Create shadow DOM for styling isolation
-            const shadowRoot = this.element.attachShadow({ mode: 'open' });
+            const shadowRoot = this.attachShadow({ mode: 'open' });
 
             // Minimal styles
             const style = document.createElement('style');
@@ -327,9 +329,9 @@
         async loadWasm() {
             try {
                 // Dynamically import the WASM module
-                const wasmSupport = await import('./wasm_support.js');
+                const wasmSupport = await import('./pkg/wasm_support.js');
                 this.wasmModule = wasmSupport;
-                await wasmSupport.init();
+                // The init function is called automatically by wasm-bindgen
                 this.wasmLoaded = true;
             } catch (error) {
                 console.error('Vector Support Embed: Failed to load WASM module', error);
@@ -341,7 +343,10 @@
             if (!this.wasmLoaded || !this.wasmModule) return;
 
             try {
-                this.bot = await this.wasmModule.WasmVectorBot.create();
+                // Wait for the WASM module to be fully initialized
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const wasmExports = this.wasmModule.default || this.wasmModule;
+                this.bot = await wasmExports.WasmVectorBot.create();
                 console.log(`Vector Support Embed #${this.instanceId}: Bot initialized`);
             } catch (error) {
                 console.error(`Vector Support Embed #${this.instanceId}: Failed to initialize bot`, error);
@@ -350,19 +355,19 @@
         }
 
         openModal() {
-            const modal = this.element.shadowRoot.getElementById(`${this.instanceId}-modal`);
+            const modal = this.shadowRoot.getElementById(`${this.instanceId}-modal`);
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
 
         closeModal() {
-            const modal = this.element.shadowRoot.getElementById(`${this.instanceId}-modal`);
+            const modal = this.shadowRoot.getElementById(`${this.instanceId}-modal`);
             modal.style.display = 'none';
             document.body.style.overflow = '';
         }
 
         showStatus(type, message) {
-            const status = this.element.shadowRoot.getElementById(`${this.instanceId}-status`);
+            const status = this.shadowRoot.getElementById(`${this.instanceId}-status`);
             status.className = `vector-support-status ${type}`;
             status.textContent = message;
         }
@@ -370,8 +375,8 @@
         async submitTicket() {
             if (this.isSubmitting || !this.bot) return;
 
-            const message = this.element.shadowRoot.getElementById(`${this.instanceId}-message`).value.trim();
-            const fileInput = this.element.shadowRoot.getElementById(`${this.instanceId}-file`);
+            const message = this.shadowRoot.getElementById(`${this.instanceId}-message`).value.trim();
+            const fileInput = this.shadowRoot.getElementById(`${this.instanceId}-file`);
 
             if (!message) {
                 this.showStatus('error', 'Please enter a message');
@@ -400,9 +405,9 @@
                 this.showStatus('success', this.config.successMessage || 'Support ticket sent!');
 
                 // Reset form
-                this.element.shadowRoot.getElementById(`${this.instanceId}-message`).value = '';
+                this.shadowRoot.getElementById(`${this.instanceId}-message`).value = '';
                 if (fileInput) fileInput.value = '';
-                this.element.shadowRoot.getElementById(`${this.instanceId}-filename`).textContent = 'No file selected';
+                this.shadowRoot.getElementById(`${this.instanceId}-filename`).textContent = 'No file selected';
 
                 // Close modal after 2 seconds
                 setTimeout(() => this.closeModal(), 2000);
@@ -469,9 +474,6 @@
 
             // Insert before the script tag
             target.insertBefore(embedElement, script);
-
-            // Initialize the embed
-            new VectorSupportEmbed(embedElement);
         });
     });
 
