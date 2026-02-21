@@ -33,6 +33,8 @@
             this.wasmLoaded = false;
             this.initialized = false;
             this.isSubmitting = false;
+            this.messages = [];
+            this.lastMessageIds = new Set();
         }
 
         connectedCallback() {
@@ -74,6 +76,7 @@
             config.placeholder = this.getAttribute('data-placeholder') || DEFAULTS.placeholder;
             config.successMessage = this.getAttribute('data-success-message') || DEFAULTS.successMessage;
             config.onSubmit = this.getAttribute('data-on-submit');
+            config.onMessage = this.getAttribute('data-on-message');
             config.customContainer = this.getAttribute('data-custom-container');
             config.relays = this.getAttribute('data-relays') || DEFAULTS.relays;
 
@@ -131,19 +134,25 @@
                 }
                 .vector-support-modal-content {
                     background: white;
-                    padding: 24px;
+                    padding: 0;
                     border-radius: 8px;
                     width: 90%;
                     max-width: 400px;
                     max-height: 80vh;
-                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
                     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
                 }
                 .vector-support-modal-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 16px;
+                    padding: 16px 20px;
+                    border-bottom: 1px solid #eee;
+                    background: white;
+                    position: sticky;
+                    top: 0;
+                    z-index: 1;
                 }
                 .vector-support-modal-title {
                     font-size: 18px;
@@ -162,20 +171,70 @@
                     align-items: center;
                     justify-content: center;
                 }
+                .vector-support-messages-container {
+                    flex: 1;
+                    padding: 16px;
+                    overflow-y: auto;
+                    background-color: #f9f9f9;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .vector-support-message {
+                    margin-bottom: 12px;
+                    padding: 10px 12px;
+                    border-radius: 6px;
+                    max-width: 80%;
+                    word-wrap: break-word;
+                    position: relative;
+                }
+                .vector-support-message.user {
+                    background-color: #e3f2fd;
+                    align-self: flex-end;
+                    border-bottom-right-radius: 2px;
+                }
+                .vector-support-message.admin {
+                    background-color: #f1f1f1;
+                    align-self: flex-start;
+                    border-bottom-left-radius: 2px;
+                }
+                .vector-support-message-sender {
+                    font-weight: 600;
+                    font-size: 12px;
+                    margin-bottom: 4px;
+                }
+                .vector-support-message-content {
+                    font-size: 14px;
+                    line-height: 1.4;
+                }
+                .vector-support-message-time {
+                    font-size: 10px;
+                    color: #999;
+                    margin-top: 4px;
+                    text-align: right;
+                }
+                .vector-support-input-container {
+                    padding: 16px;
+                    border-top: 1px solid #eee;
+                    background: white;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
                 .vector-support-textarea {
                     width: 100%;
-                    min-height: 100px;
+                    min-height: 80px;
                     padding: 10px;
                     border: 1px solid #ddd;
                     border-radius: 4px;
                     font-size: 14px;
-                    margin-bottom: 12px;
                     resize: vertical;
                     box-sizing: border-box;
                 }
                 .vector-support-file-upload {
                     margin-bottom: 12px;
-                    display: ${this.config.showFiles ? 'block' : 'none'};
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
                 }
                 .vector-support-file-input {
                     display: none;
@@ -187,12 +246,13 @@
                     border-radius: 4px;
                     cursor: pointer;
                     font-size: 12px;
-                    margin-bottom: 6px;
+                    text-align: center;
                 }
                 .vector-support-file-name {
                     font-size: 12px;
                     color: #666;
                     word-break: break-all;
+                    text-align: center;
                 }
                 .vector-support-submit {
                     background-color: ${this.config.buttonColor};
@@ -202,14 +262,13 @@
                     font-size: 14px;
                     border-radius: 4px;
                     cursor: pointer;
-                    width: 100%;
                 }
                 .vector-support-submit:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
                 }
                 .vector-support-status {
-                    margin-top: 12px;
+                    margin-top: 8px;
                     padding: 8px;
                     border-radius: 4px;
                     font-size: 12px;
@@ -255,12 +314,21 @@
 
             const modalTitle = document.createElement('h3');
             modalTitle.className = 'vector-support-modal-title';
-            modalTitle.textContent = 'Support Request';
+            modalTitle.textContent = 'Support Chat';
 
             const closeButton = document.createElement('button');
             closeButton.className = 'vector-support-close';
             closeButton.innerHTML = '&times;';
             closeButton.addEventListener('click', () => this.closeModal());
+
+            // Messages container
+            const messagesContainer = document.createElement('div');
+            messagesContainer.className = 'vector-support-messages-container';
+            messagesContainer.id = `${this.instanceId}-messages`;
+
+            // Input container
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'vector-support-input-container';
 
             const textarea = document.createElement('textarea');
             textarea.className = 'vector-support-textarea';
@@ -299,14 +367,17 @@
             fileUpload.appendChild(fileLabel);
             fileUpload.appendChild(fileName);
 
+            inputContainer.appendChild(textarea);
+            inputContainer.appendChild(fileUpload);
+            inputContainer.appendChild(submitButton);
+            inputContainer.appendChild(status);
+
             modalHeader.appendChild(modalTitle);
             modalHeader.appendChild(closeButton);
 
             modalContent.appendChild(modalHeader);
-            modalContent.appendChild(textarea);
-            modalContent.appendChild(fileUpload);
-            modalContent.appendChild(submitButton);
-            modalContent.appendChild(status);
+            modalContent.appendChild(messagesContainer);
+            modalContent.appendChild(inputContainer);
 
             modal.appendChild(modalContent);
 
@@ -349,22 +420,191 @@
                 // WasmVectorBot is exported directly from the module
                 this.bot = await this.wasmModule.WasmVectorBot.create();
                 console.log(`Vector Support Embed #${this.instanceId}: Bot initialized`);
+
+                // Set up message callback to receive incoming messages
+                this.bot.set_message_callback((message, messageId, timestamp) => {
+                    this.handleIncomingMessage(message, messageId, timestamp);
+                });
             } catch (error) {
                 console.error(`Vector Support Embed #${this.instanceId}: Failed to initialize bot`, error);
                 this.showStatus('error', 'Failed to initialize support bot');
             }
         }
 
+        /**
+         * Handle incoming messages from support agents
+         */
+        handleIncomingMessage(message, messageId, timestamp) {
+            console.log(`Vector Support Embed #${this.instanceId}: Received message`, message, 'ID:', messageId);
+
+            // Check if we've already seen this message
+            if (this.lastMessageIds.has(messageId)) {
+                console.log(`Vector Support Embed #${this.instanceId}: Duplicate message detected, skipping`, messageId);
+                return;
+            }
+
+            // Skip typing indicators
+            if (this.isTypingIndicator(message)) {
+                console.log(`Vector Support Embed #${this.instanceId}: Typing indicator detected, skipping`, message);
+                return;
+            }
+
+            // Convert Unix timestamp (seconds) to ISO string
+            let messageTimestamp;
+            if (timestamp && !isNaN(timestamp)) {
+                messageTimestamp = new Date(timestamp * 1000).toISOString();
+            } else {
+                messageTimestamp = new Date().toISOString();
+            }
+
+            // Add the message to our list
+            const newMessage = {
+                id: messageId,
+                content: message,
+                sender: 'admin',
+                timestamp: messageTimestamp
+            };
+
+            this.messages.push(newMessage);
+            this.lastMessageIds.add(messageId);
+
+            // Render the message in the chat window
+            this.renderMessage(newMessage);
+
+            // Trigger onMessage callback if provided
+            if (this.config.onMessage) {
+                const callback = window[this.config.onMessage];
+                if (typeof callback === 'function') {
+                    callback({
+                        message: message,
+                        messageId: messageId,
+                        timestamp: messageTimestamp,
+                        sender: 'admin',
+                        instanceId: this.instanceId
+                    });
+                }
+            }
+        }
+
+        /**
+         * Check if a message is a typing indicator
+         */
+        isTypingIndicator(message) {
+            const typingPatterns = [
+                /^typing$/i,
+                /^is typing$/i,
+                /^user is typing$/i,
+                /^admin is typing$/i,
+                /^\uD83D\uDC41$/i, // Typing indicator emoji
+                /^typing...$/i
+            ];
+
+            return typingPatterns.some(pattern => pattern.test(message));
+        }
+
+        /**
+         * Fetch new messages from the bot
+         */
+        async fetchMessages() {
+            if (!this.bot) {
+                console.error(`Vector Support Embed #${this.instanceId}: Bot not initialized`);
+                return false;
+            }
+
+            try {
+                await this.bot.fetch_messages();
+                console.log(`Vector Support Embed #${this.instanceId}: Messages fetched`);
+                return true;
+            } catch (error) {
+                console.error(`Vector Support Embed #${this.instanceId}: Error fetching messages`, error);
+                return false;
+            }
+        }
+
+        /**
+         * Get all messages (both sent and received)
+         */
+        getMessages() {
+            return [...this.messages];
+        }
+
+        /**
+         * Add a user message to the store
+         */
+        addUserMessage(message) {
+            const newMessage = {
+                content: message,
+                sender: 'user',
+                timestamp: new Date().toISOString()
+            };
+
+            this.messages.push(newMessage);
+            return newMessage;
+        }
+
         openModal() {
             const modal = this.shadowRoot.getElementById(`${this.instanceId}-modal`);
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
+
+            // Display message history
+            this.renderMessages();
         }
 
         closeModal() {
             const modal = this.shadowRoot.getElementById(`${this.instanceId}-modal`);
             modal.style.display = 'none';
             document.body.style.overflow = '';
+        }
+
+        /**
+         * Render all messages in the chat window
+         */
+        renderMessages() {
+            const messagesContainer = this.shadowRoot.getElementById(`${this.instanceId}-messages`);
+            if (!messagesContainer) return;
+
+            // Clear existing messages
+            messagesContainer.innerHTML = '';
+
+            // Render each message
+            this.messages.forEach(msg => {
+                this.renderMessage(msg);
+            });
+
+            // Scroll to bottom
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+
+        /**
+         * Render a single message
+         */
+        renderMessage(message) {
+            const messagesContainer = this.shadowRoot.getElementById(`${this.instanceId}-messages`);
+            if (!messagesContainer) return;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `vector-support-message ${message.sender}`;
+
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'vector-support-message-sender';
+            senderDiv.textContent = message.sender === 'user' ? 'You' : 'Support';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'vector-support-message-content';
+            contentDiv.textContent = message.content;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'vector-support-message-time';
+            timeDiv.textContent = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.appendChild(senderDiv);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+
+            messagesContainer.appendChild(messageDiv);
         }
 
         showStatus(type, message) {
@@ -387,6 +627,20 @@
             this.isSubmitting = true;
             this.showStatus('loading', 'Sending support ticket...');
 
+            // Add user message to chat immediately
+            const userMessage = {
+                content: message,
+                sender: 'user',
+                timestamp: new Date().toISOString()
+            };
+            this.messages.push(userMessage);
+            this.renderMessage(userMessage);
+
+            // Reset form
+            this.shadowRoot.getElementById(`${this.instanceId}-message`).value = '';
+            if (fileInput) fileInput.value = '';
+            this.shadowRoot.getElementById(`${this.instanceId}-filename`).textContent = 'No file selected';
+
             try {
                 let result;
                 if (this.config.showFiles && fileInput.files.length > 0) {
@@ -404,14 +658,6 @@
                 }
 
                 this.showStatus('success', this.config.successMessage || 'Support ticket sent!');
-
-                // Reset form
-                this.shadowRoot.getElementById(`${this.instanceId}-message`).value = '';
-                if (fileInput) fileInput.value = '';
-                this.shadowRoot.getElementById(`${this.instanceId}-filename`).textContent = 'No file selected';
-
-                // Close modal after 2 seconds
-                setTimeout(() => this.closeModal(), 2000);
 
                 // Call onSubmit callback if provided
                 if (this.config.onSubmit) {

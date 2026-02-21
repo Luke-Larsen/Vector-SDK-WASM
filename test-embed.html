@@ -80,24 +80,120 @@ data-show-files="false"
                 <li>WASM initialization messages</li>
                 <li>Bot creation status</li>
                 <li>Submission success/error messages</li>
+                <li>Incoming messages from support agents</li>
             </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>Support Conversation</h2>
+            <p>Messages from support agents will appear here:</p>
+            <div id="messagesContainer" style="margin-top: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; min-height: 200px; background-color: #f9f9f9; overflow-y: auto;">
+                <div id="messagesList"></div>
+            </div>
+            <button id="refreshBtn" style="margin-top: 10px; background-color: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Refresh Messages</button>
         </div>
     </div>
 
     <!-- Vector Support Embed -->
-    <script src="vector-support-embed.js" data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy" data-button-text="Get Support" data-button-color="#007bff" data-show-files="false"></script>
+    <script src="vector-support-embed.js" data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy" data-button-text="Get Support" data-button-color="#007bff" data-show-files="false" data-on-message="handleSupportMessage" data-on-submit="handleSupportSubmit"></script>
 
-    <!-- Optional callback for testing -->
+    <!-- Optional callbacks for testing -->
     <script>
+    // Handle support ticket submission
     function handleSupportSubmit(data) {
         if (data.success) {
             console.log('✅ Support ticket submitted successfully:', data);
             alert('Support ticket sent successfully!');
+
+            // Add user message to UI
+            addMessageToUI(data.message, 'user');
         } else {
             console.error('❌ Support ticket submission failed:', data.error);
             alert('Error: ' + data.error);
         }
     }
+
+    // Handle incoming messages from support agent
+    function handleSupportMessage(data) {
+        console.log('📩 New message from support:', data);
+
+        // Add admin message to UI
+        addMessageToUI(data.message, 'admin');
+
+        // Show notification
+        alert('📩 New message from support!\n\n' + data.message);
+    }
+
+    // Add message to UI
+    function addMessageToUI(message, sender) {
+        const messagesList = document.getElementById('messagesList');
+        const messageDiv = document.createElement('div');
+        messageDiv.style.marginBottom = '10px';
+        messageDiv.style.padding = '10px';
+        messageDiv.style.borderRadius = '4px';
+        messageDiv.style.wordWrap = 'break-word';
+
+        if (sender === 'user') {
+            messageDiv.style.backgroundColor = '#e3f2fd';
+            messageDiv.style.textAlign = 'right';
+        } else {
+            messageDiv.style.backgroundColor = '#f1f1f1';
+            messageDiv.style.textAlign = 'left';
+        }
+
+        const senderLabel = document.createElement('div');
+        senderLabel.style.fontWeight = 'bold';
+        senderLabel.style.marginBottom = '5px';
+        senderLabel.textContent = sender === 'user' ? 'You' : 'Support';
+
+        const messageContent = document.createElement('div');
+        messageContent.textContent = message;
+
+        const timestamp = document.createElement('div');
+        timestamp.style.fontSize = '10px';
+        timestamp.style.color = '#999';
+        timestamp.style.marginTop = '5px';
+        timestamp.textContent = new Date().toISOString();
+
+        messageDiv.appendChild(senderLabel);
+        messageDiv.appendChild(messageContent);
+        messageDiv.appendChild(timestamp);
+
+        messagesList.appendChild(messageDiv);
+
+        // Scroll to bottom
+        messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    // Refresh messages
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing...';
+
+        try {
+            // Get the embed element
+            const embed = document.querySelector('vector-support-embed');
+            if (embed && typeof embed.fetchMessages === 'function') {
+                await embed.fetchMessages();
+                console.log('Messages refreshed');
+                alert('Messages refreshed successfully!');
+            } else {
+                console.log('Embed not ready yet, trying again...');
+                setTimeout(() => {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = 'Refresh Messages';
+                }, 1000);
+                return;
+            }
+        } catch (error) {
+            console.error('Error refreshing messages:', error);
+            alert('Error refreshing messages: ' + error.message);
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = 'Refresh Messages';
+        }
+    });
     </script>
 </body>
 </html>
