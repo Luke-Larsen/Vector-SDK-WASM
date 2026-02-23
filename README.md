@@ -216,6 +216,27 @@ All configuration is done via HTML `data-*` attributes:
 | `data-on-submit` | JavaScript callback | None | `handleSupportSubmit` |
 | `data-custom-container` | Custom container selector | None | `#support-container` |
 | `data-relays` | Custom Nostr relays | Default relays | `wss://your-relay.com` |
+| `data-auto-refresh-interval` | Auto-refresh interval in seconds | 30 | 60 |
+
+### Auto-Refresh Messages
+
+The support ticket system now includes an auto-refresh feature that automatically fetches new messages at regular intervals.
+
+**Features:**
+- Messages are automatically fetched in the background
+- Configurable refresh interval (default: 30 seconds)
+- Continues running even when the modal is closed
+- Error resilient with proper error handling
+
+**Configuration:**
+```html
+<script src="vector-support-embed.min.js"
+        data-admin-npub="npub1..."
+        data-auto-refresh-interval="60">  <!-- Refresh every 60 seconds -->
+</script>
+```
+
+If no `data-auto-refresh-interval` is specified, the default is 30 seconds. Set it to `0` to disable auto-refresh.
 
 ### WASM Configuration
 

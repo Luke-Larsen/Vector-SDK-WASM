@@ -204,6 +204,8 @@
         let messages = [];
         let lastMessageIds = new Set(); // Track message IDs to prevent duplicates
         let userMessages = []; // Track user messages separately
+        let autoRefreshIntervalId = null;
+        const AUTO_REFRESH_INTERVAL = 30; // seconds
 
         // Initialize WASM
         async function initWasm() {
@@ -226,6 +228,9 @@
 
                 document.getElementById('submitBtn').disabled = false;
                 document.getElementById('refreshBtn').disabled = false;
+
+                // Start auto-refresh
+                startAutoRefresh();
             } catch (error) {
                 console.error('Error initializing WASM:', error);
                 showStatus('error', `Failed to initialize: ${error.message}`);
@@ -397,6 +402,38 @@
                 document.getElementById('refreshBtn').disabled = false;
             }
         });
+
+        /**
+         * Start auto-refreshing messages at the configured interval
+         */
+        function startAutoRefresh() {
+            // Stop any existing interval first
+            stopAutoRefresh();
+
+            // Convert interval from seconds to milliseconds
+            const intervalMs = AUTO_REFRESH_INTERVAL * 1000;
+
+            console.log(`Starting auto-refresh every ${AUTO_REFRESH_INTERVAL} seconds`);
+
+            autoRefreshIntervalId = setInterval(async () => {
+                try {
+                    await bot.fetch_messages();
+                } catch (error) {
+                    console.error('Auto-refresh error:', error);
+                }
+            }, intervalMs);
+        }
+
+        /**
+         * Stop auto-refreshing messages
+         */
+        function stopAutoRefresh() {
+            if (autoRefreshIntervalId) {
+                clearInterval(autoRefreshIntervalId);
+                autoRefreshIntervalId = null;
+                console.log('Auto-refresh stopped');
+            }
+        }
 
         // Initialize on page load
         window.addEventListener('load', initWasm);

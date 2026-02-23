@@ -17,7 +17,8 @@
         showFiles: false,
         placeholder: 'Describe your issue...',
         successMessage: 'Support ticket sent!',
-        relays: 'wss://nostr.computingcache.com,wss://jskitty.cat/nostr,wss://auth.nostr1.com'
+        relays: 'wss://nostr.computingcache.com,wss://jskitty.cat/nostr,wss://auth.nostr1.com',
+        autoRefreshInterval: 30 // seconds
     };
 
     // Instance counter for multiple embeds
@@ -35,6 +36,7 @@
             this.isSubmitting = false;
             this.messages = [];
             this.lastMessageIds = new Set();
+            this.autoRefreshIntervalId = null;
         }
 
         connectedCallback() {
@@ -79,6 +81,17 @@
             config.onMessage = this.getAttribute('data-on-message');
             config.customContainer = this.getAttribute('data-custom-container');
             config.relays = this.getAttribute('data-relays') || DEFAULTS.relays;
+
+            // Auto-refresh configuration
+            const autoRefreshIntervalAttr = this.getAttribute('data-auto-refresh-interval');
+            if (autoRefreshIntervalAttr) {
+                const interval = parseInt(autoRefreshIntervalAttr);
+                if (!isNaN(interval) && interval > 0) {
+                    config.autoRefreshInterval = interval;
+                }
+            } else {
+                config.autoRefreshInterval = DEFAULTS.autoRefreshInterval;
+            }
 
             this.config = config;
         }
@@ -425,9 +438,46 @@
                 this.bot.set_message_callback((message, messageId, timestamp) => {
                     this.handleIncomingMessage(message, messageId, timestamp);
                 });
+
+                // Start auto-refresh if configured
+                if (this.config.autoRefreshInterval && this.config.autoRefreshInterval > 0) {
+                    this.startAutoRefresh();
+                }
             } catch (error) {
                 console.error(`Vector Support Embed #${this.instanceId}: Failed to initialize bot`, error);
                 this.showStatus('error', 'Failed to initialize support bot');
+            }
+        }
+
+        /**
+         * Start auto-refreshing messages at the configured interval
+         */
+        startAutoRefresh() {
+            // Stop any existing interval first
+            this.stopAutoRefresh();
+
+            // Convert interval from seconds to milliseconds
+            const intervalMs = this.config.autoRefreshInterval * 1000;
+
+            console.log(`Vector Support Embed #${this.instanceId}: Starting auto-refresh every ${this.config.autoRefreshInterval} seconds`);
+
+            this.autoRefreshIntervalId = setInterval(async () => {
+                try {
+                    await this.fetchMessages();
+                } catch (error) {
+                    console.error(`Vector Support Embed #${this.instanceId}: Auto-refresh error`, error);
+                }
+            }, intervalMs);
+        }
+
+        /**
+         * Stop auto-refreshing messages
+         */
+        stopAutoRefresh() {
+            if (this.autoRefreshIntervalId) {
+                clearInterval(this.autoRefreshIntervalId);
+                this.autoRefreshIntervalId = null;
+                console.log(`Vector Support Embed #${this.instanceId}: Auto-refresh stopped`);
             }
         }
 
