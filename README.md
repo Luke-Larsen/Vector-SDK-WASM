@@ -7,9 +7,9 @@ A support ticket system built using the Vector-SDK compiled to WebAssembly (WASM
 - ✅ WASM compilation of Vector-SDK for browser/Node.js
 - ✅ Support ticket form with message input
 - ✅ File attachment support (optional)
-- ✅ Direct messaging to admin via Nostr
+- ✅ Direct messaging to admin via Nostr using Gift Wrap encryption
 - ✅ Encrypted private messages
-- ✅ Responsive web interface
+- ✅ Responsive web interface with chat UI
 - ✅ Standalone application packaging
 - ✅ Secondary notification bot for support agent alerts
 - ✅ **One-line embed** for easy integration into any website
@@ -17,6 +17,10 @@ A support ticket system built using the Vector-SDK compiled to WebAssembly (WASM
 - ✅ Highly customizable via HTML data attributes
 - ✅ Minimal styling for easy integration
 - ✅ Self-hosting support
+- ✅ Auto-refresh for incoming messages
+- ✅ Message callback system for real-time updates
+- ✅ Shadow DOM for styling isolation
+- ✅ Typing indicator filtering
 
 ## Installation
 
@@ -113,14 +117,15 @@ You can have multiple embed instances on the same page:
 </script>
 ```
 
-### With Callback
+### With Callbacks
 
-Track submissions with a callback function:
+Track submissions and receive messages with callback functions:
 
 ```html
 <script src="vector-support-embed.min.js"
         data-admin-npub="npub132lq2gvwx9ae3wug5hy7a5tcs48jamynfsuact2cvgjavs5uk8vqeme4sy"
-        data-on-submit="handleSupportSubmit">
+        data-on-submit="handleSupportSubmit"
+        data-on-message="handleNewMessage">
 </script>
 <script>
 function handleSupportSubmit(data) {
@@ -130,6 +135,11 @@ function handleSupportSubmit(data) {
     } else {
         console.error('Error:', data.error);
     }
+}
+
+function handleNewMessage(data) {
+    console.log('New message received:', data);
+    // Update UI, play sound, etc.
 }
 </script>
 ```
@@ -151,23 +161,31 @@ npm run package
 ## How It Works
 
 1. **WASM Initialization**: The Vector-SDK is compiled to WASM and loaded in the browser
-2. **Bot Creation**: A new bot instance is created with generated keys
-3. **Relay Connection**: The bot connects to Nostr relays
+2. **Bot Creation**: A new bot instance is created with generated keys for each embed
+3. **Relay Connection**: The bot connects to Nostr relays (default: nostr.computingcache.com, jskitty.cat/nostr, auth.nostr1.com)
 4. **Ticket Submission**: Users submit support tickets via a web form
-5. **Message Sending**: Messages are sent as encrypted private messages to the admin
+5. **Message Sending**: Messages are sent as encrypted private messages using Gift Wrap to the admin
+6. **Message Receiving**: The bot fetches incoming messages using Gift Wrap and calls the message callback
+7. **Auto-Refresh**: Messages are automatically fetched at regular intervals (configurable)
 
 ## File Structure
 
 ```
 vector-sdk-wasm/
-├── Vector-SDK/          # Original Vector-SDK source
-├── wasm-support/        # WASM-compatible wrapper
-├── pkg/                 # Compiled WASM artifacts
+├── wasm-support/        # WASM-compatible wrapper (Rust)
+│   ├── Cargo.toml
+│   ├── src/
+│   │   └── lib.rs       # Main WASM implementation
+│   └── pkg/             # Compiled WASM artifacts (created after build)
+├── pkg/                 # Symlinked to wasm-support/pkg after build
 ├── index.html           # Web interface
 ├── server.js            # Simple HTTP server
 ├── notification-service.js # Notification service for support agents
+├── vector-support-embed.js # Main embed script
+├── vector-support-embed.min.js # Minified embed script
 ├── package.json         # Project configuration
-└── README.md            # This file
+├── README.md            # This file
+└── test-embed.html      # Test page for embed functionality
 ```
 
 ## API Reference
@@ -186,8 +204,8 @@ const bot = await WasmVectorBot.create();
 // Get bot public key
 const publicKey = bot.get_public_key();
 
-// Send support ticket
-const result = await bot.send_support_ticket("Your support message");
+// Send support ticket with notification
+const result = await bot.send_support_ticket_with_notification("Your support message");
 
 // Send support ticket with file
 const fileData = new Uint8Array(await file.arrayBuffer());
@@ -196,9 +214,15 @@ const result = await bot.send_support_ticket_with_file(
     "filename.txt",
     fileData
 );
-```
 
-## Configuration
+// Fetch incoming messages
+await bot.fetch_messages();
+
+// Set message callback
+bot.set_message_callback((message, messageId, timestamp) => {
+    console.log('Received message:', message);
+});
+```
 
 ### Embed Configuration Options
 
@@ -213,20 +237,22 @@ All configuration is done via HTML `data-*` attributes:
 | `data-show-files` | Enable file uploads | `false` | `true` |
 | `data-placeholder` | Textarea placeholder | `Describe your issue...` | `How can we help you?` |
 | `data-success-message` | Success message | `Support ticket sent!` | `Thank you! We'll contact you soon.` |
-| `data-on-submit` | JavaScript callback | None | `handleSupportSubmit` |
+| `data-on-submit` | JavaScript callback for submission events | None | `handleSupportSubmit` |
+| `data-on-message` | JavaScript callback for incoming messages | None | `handleNewMessage` |
 | `data-custom-container` | Custom container selector | None | `#support-container` |
 | `data-relays` | Custom Nostr relays | Default relays | `wss://your-relay.com` |
 | `data-auto-refresh-interval` | Auto-refresh interval in seconds | 30 | 60 |
 
 ### Auto-Refresh Messages
 
-The support ticket system now includes an auto-refresh feature that automatically fetches new messages at regular intervals.
+The support ticket system includes an auto-refresh feature that automatically fetches new messages at regular intervals.
 
 **Features:**
-- Messages are automatically fetched in the background
+- Messages are automatically fetched in the background using `fetch_messages()`
 - Configurable refresh interval (default: 30 seconds)
 - Continues running even when the modal is closed
 - Error resilient with proper error handling
+- Uses Gift Wrap encryption for secure message retrieval
 
 **Configuration:**
 ```html
@@ -238,28 +264,47 @@ The support ticket system now includes an auto-refresh feature that automaticall
 
 If no `data-auto-refresh-interval` is specified, the default is 30 seconds. Set it to `0` to disable auto-refresh.
 
-### WASM Configuration
+### Message Callbacks
 
-Edit `wasm-support/src/lib.rs` to configure:
+The embed supports two callback functions that you can implement to handle events:
 
-- Admin npub (line 97)
-- Default relays (lines 33-42)
+#### `data-on-submit` Callback
 
-## NSEC Secondary Bot Implementation
+Called when a user submits a support ticket.
 
-A secondary NSEC bot has been added to the support ticket system. This bot has a static key and its sole purpose is to send notifications to a list of support agents when:
-- A new ticket is opened
-- A new message is sent on an existing ticket
+**Parameters:**
+- `message`: The message content
+- `instanceId`: Unique identifier for this embed instance
+- `timestamp`: ISO timestamp of submission
+- `success`: Boolean indicating if submission was successful
+- `error`: Error message (if success is false)
 
-### Notification Service
+#### `data-on-message` Callback
 
-The notification service is a standalone Node.js application that:
-- Runs separately from the main support ticket system
-- Uses the wasm-support library for Nostr operations
-- Sends notifications to configured support agents
-- Provides REST API endpoints for triggering notifications
+Called when a new message is received from the support agent.
 
-### Running the Notification Service
+**Parameters:**
+- `message`: The decrypted message content
+- `messageId`: Unique identifier for the message
+- `timestamp`: ISO timestamp of the message
+- `sender`: Always `'admin'` for received messages
+- `instanceId`: Unique identifier for this embed instance
+
+**Example:**
+```javascript
+function handleNewMessage(data) {
+    console.log('New message from support:', data.message);
+    // Play notification sound
+    // Update unread badge
+    // Show notification popup
+}
+```
+
+### Notification Service Integration
+
+The notification service can be used to alert support agents when new tickets or messages arrive.
+
+#### Running the Notification Service
 
 ```bash
 # Start the notification service
@@ -268,15 +313,15 @@ npm run start:notifications
 # The service will run on port 3001 by default
 ```
 
-### API Endpoints
+#### API Endpoints
 
-#### Health Check
+##### Health Check
 ```
 GET /api/health
 ```
 Returns service status and configuration information.
 
-#### New Ticket Notification
+##### New Ticket Notification
 ```
 POST /api/notifications/new-ticket
 ```
@@ -289,7 +334,7 @@ POST /api/notifications/new-ticket
 }
 ```
 
-#### New Message Notification
+##### New Message Notification
 ```
 POST /api/notifications/new-message
 ```
@@ -302,7 +347,7 @@ POST /api/notifications/new-message
 }
 ```
 
-### Notification Format
+#### Notification Format
 
 Notifications sent to support agents include:
 - Clear subject line (New Support Ticket or New Message on Ticket)
@@ -321,7 +366,7 @@ Message: User's support message here
 Please check the support ticket system for details.
 ```
 
-### Configuration
+#### Configuration
 
 Edit `notification-service.js` to configure support agents:
 
@@ -349,9 +394,10 @@ MIT
 
 1. **Auto-Initialization**: The embed script automatically initializes when the page loads
 2. **WASM Loading**: The Vector-SDK WASM module is loaded asynchronously
-3. **Bot Creation**: A Nostr bot is created for each embed instance
-4. **Message Sending**: Support tickets are sent as encrypted private messages via Nostr
-5. **Multiple Instances**: Each embed maintains its own state and configuration
+3. **Bot Creation**: A Nostr bot is created for each embed instance with unique keys
+4. **Message Sending**: Support tickets are sent as encrypted private messages via Nostr using Gift Wrap
+5. **Message Receiving**: The bot periodically fetches incoming messages and calls the message callback
+6. **Multiple Instances**: Each embed maintains its own state and configuration
 
 ### File Structure for Embed
 
@@ -387,17 +433,30 @@ vector-support-embed {
 - Ensure `data-admin-npub` is set
 - Check browser console for errors
 - Verify WASM files are accessible
+- Ensure the script is loaded after the DOM is ready
 
 **Issue: WASM module fails to load**
 - Ensure all WASM files are in the correct location
 - Check CORS settings if loading from a different domain
 - Verify the WASM module is built with `npm run build:release`
+- Check browser console for detailed error messages
 
 **Issue: Messages not sending**
 - Verify the admin npub is correct
 - Check Nostr relay connectivity
 - Ensure the bot has proper permissions
-```
+- Check browser console for error details
+
+**Issue: Messages not receiving**
+- Verify the auto-refresh is enabled (check `data-auto-refresh-interval`)
+- Ensure the message callback is properly set up
+- Check that the bot's public key is correctly configured
+- Verify the Gift Wrap encryption is working properly
+
+**Issue: Multiple instances not working**
+- Ensure each instance has a unique configuration
+- Check that custom container selectors are valid
+- Verify no JavaScript errors are preventing initialization
 
 ### Testing the Embed
 
