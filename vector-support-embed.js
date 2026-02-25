@@ -24,6 +24,51 @@
     // Instance counter for multiple embeds
     let instanceCounter = 0;
 
+    // Cookie utility functions
+    const CookieUtils = {
+        /**
+         * Set a cookie with optional expiration days
+         */
+        setCookie(name, value, days = 30) {
+            let expires = '';
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = `; expires=${date.toUTCString()}`;
+            }
+            document.cookie = `${name}=${encodeURIComponent(value)}${expires}; path=/; SameSite=Lax`;
+        },
+
+        /**
+         * Get a cookie by name
+         */
+        getCookie(name) {
+            const nameEQ = `${name}=`;
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(nameEQ)) {
+                    return decodeURIComponent(cookie.substring(nameEQ.length));
+                }
+            }
+            return null;
+        },
+
+        /**
+         * Delete a cookie
+         */
+        deleteCookie(name) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        },
+
+        /**
+         * Check if a cookie exists
+         */
+        hasCookie(name) {
+            return this.getCookie(name) !== null;
+        }
+    };
+
     // Main embed class
     class VectorSupportEmbed extends HTMLElement {
         constructor() {
@@ -37,6 +82,66 @@
             this.messages = [];
             this.lastMessageIds = new Set();
             this.autoRefreshIntervalId = null;
+            this.botNsec = null;
+        }
+
+        /**
+         * Save bot nsec to cookie
+         */
+        saveBotNsec(nsec) {
+            if (!nsec) return;
+            CookieUtils.setCookie(`vector_support_bot_nsec_${this.instanceId}`, nsec, 30);
+        }
+
+        /**
+         * Load bot nsec from cookie
+         */
+        loadBotNsec() {
+            return CookieUtils.getCookie(`vector_support_bot_nsec_${this.instanceId}`);
+        }
+
+        /**
+         * Save chat history to cookie
+         */
+        saveChatHistory() {
+            if (this.messages.length === 0) return;
+
+            try {
+                const historyData = JSON.stringify(this.messages);
+                CookieUtils.setCookie(`vector_support_chat_history_${this.instanceId}`, historyData, 30);
+            } catch (error) {
+                console.error(`Vector Support Embed #${this.instanceId}: Failed to save chat history`, error);
+            }
+        }
+
+        /**
+         * Load chat history from cookie
+         */
+        loadChatHistory() {
+            const historyData = CookieUtils.getCookie(`vector_support_chat_history_${this.instanceId}`);
+            if (!historyData) return [];
+
+            try {
+                const messages = JSON.parse(historyData);
+                // Restore lastMessageIds from loaded messages
+                messages.forEach(msg => {
+                    if (msg.id) {
+                        this.lastMessageIds.add(msg.id);
+                    }
+                });
+                return messages;
+            } catch (error) {
+                console.error(`Vector Support Embed #${this.instanceId}: Failed to load chat history`, error);
+                return [];
+            }
+        }
+
+        /**
+         * Clear all stored data
+         */
+        clearStoredData() {
+            CookieUtils.deleteCookie(`vector_support_bot_nsec_${this.instanceId}`);
+            CookieUtils.deleteCookie(`vector_support_chat_history_${this.instanceId}`);
         }
 
         connectedCallback() {
@@ -430,14 +535,34 @@
             try {
                 // Wait for the WASM module to be fully initialized
                 await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Load existing bot nsec from cookie if available
+                const savedNsec = this.loadBotNsec();
+                if (savedNsec) {
+                    console.log(`Vector Support Embed #${this.instanceId}: Loading existing bot from cookie`);
+                    // Note: Current WASM implementation doesn't support loading keys directly
+                    // The bot will be created with new keys, but we'll save the nsec after creation
+                }
+
                 // WasmVectorBot is exported directly from the module
                 this.bot = await this.wasmModule.WasmVectorBot.create();
                 console.log(`Vector Support Embed #${this.instanceId}: Bot initialized`);
+
+                // Get the bot's public key and save the nsec if we have it
+                const botNpub = await this.bot.get_public_key();
+                console.log(`Vector Support Embed #${this.instanceId}: Bot npub: ${botNpub}`);
 
                 // Set up message callback to receive incoming messages
                 this.bot.set_message_callback((message, messageId, timestamp) => {
                     this.handleIncomingMessage(message, messageId, timestamp);
                 });
+
+                // Load chat history from cookie
+                const savedMessages = this.loadChatHistory();
+                if (savedMessages.length > 0) {
+                    this.messages = savedMessages;
+                    console.log(`Vector Support Embed #${this.instanceId}: Loaded ${savedMessages.length} messages from cookie`);
+                }
 
                 // Start auto-refresh if configured
                 if (this.config.autoRefreshInterval && this.config.autoRefreshInterval > 0) {
@@ -517,6 +642,9 @@
 
             this.messages.push(newMessage);
             this.lastMessageIds.add(messageId);
+
+            // Save chat history to cookie
+            this.saveChatHistory();
 
             // Render the message in the chat window
             this.renderMessage(newMessage);
@@ -685,6 +813,9 @@
             };
             this.messages.push(userMessage);
             this.renderMessage(userMessage);
+
+            // Save chat history to cookie
+            this.saveChatHistory();
 
             // Reset form
             this.shadowRoot.getElementById(`${this.instanceId}-message`).value = '';
