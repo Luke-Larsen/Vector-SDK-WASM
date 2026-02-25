@@ -518,7 +518,7 @@
         async loadWasm() {
             try {
                 // Dynamically import the WASM module
-                const wasmSupport = await import('./pkg/wasm_support.js');
+                const wasmSupport = await import('./pkg/wasm_support.mjs');
                 this.wasmModule = wasmSupport;
                 // Initialize the WASM module
                 await wasmSupport.default();
