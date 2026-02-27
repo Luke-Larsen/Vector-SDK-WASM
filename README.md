@@ -192,6 +192,8 @@ vector-sdk-wasm/
 
 ### WASM Module
 
+The WASM module provides the core functionality for the Vector-SDK support ticket system.
+
 ```javascript
 import init, { WasmVectorBot } from './pkg/wasm_support.js';
 
@@ -222,7 +224,25 @@ await bot.fetch_messages();
 bot.set_message_callback((message, messageId, timestamp) => {
     console.log('Received message:', message);
 });
+
+// Get admin public key
+const adminKey = WasmVectorBot.get_admin_public_key();
 ```
+
+**WASM Module Methods:**
+
+| Method | Description | Parameters | Returns |
+|--------|-------------|------------|---------|
+| `create()` | Create a new bot instance with generated keys | None | Promise resolving to WasmVectorBot instance |
+| `get_public_key()` | Get the bot's public key as npub | None | String (npub) |
+| `send_private_message(recipient_npub, message)` | Send a private message to a recipient | `recipient_npub` (String), `message` (String) | Promise |
+| `send_support_ticket(message)` | Send a support ticket to the default admin | `message` (String) | Promise |
+| `send_support_ticket_with_notification(message)` | Send a support ticket with notification to support agents | `message` (String) | Promise |
+| `send_support_ticket_with_file(message, file_name, file_data)` | Send a support ticket with file attachment | `message` (String), `file_name` (String), `file_data` (Uint8Array) | Promise |
+| `fetch_messages()` | Fetch recent messages from admin using Gift Wrap | None | Promise |
+| `set_message_callback(callback)` | Set a callback function to receive incoming messages | `callback` (Function) | None |
+| `clear_message_callback()` | Clear the message callback | None | None |
+| `get_admin_public_key()` | Get the default admin public key | None | String (npub) |
 
 ### Embed Configuration Options
 
@@ -408,6 +428,33 @@ vector-support-embed/
 ├── wasm_support.js                 # WASM JS glue code
 ├── wasm_support_bg.wasm            # Compiled WASM module
 └── pkg/                           # WASM package directory
+```
+
+### Cookie Persistence
+
+The embed includes built-in cookie persistence for chat history and bot keys:
+
+**Features:**
+- Chat history is automatically saved to cookies and restored when the user returns
+- Bot private keys are persisted for 30 days to maintain conversation state
+- Persistence is instance-specific (each embed instance has its own cookies)
+- Cookies are set with `SameSite=Lax` for security
+
+**Configuration:**
+- Cookie expiration: 30 days (configurable in the code)
+- Cookie names: `vector_support_bot_nsec_<instanceId>` and `vector_support_chat_history_<instanceId>`
+- Cookies are automatically managed by the embed
+
+**Clearing Data:**
+To clear stored data programmatically:
+```javascript
+// Get the embed element
+const embed = document.querySelector('vector-support-embed');
+
+// Call the clearStoredData method
+if (embed.clearStoredData) {
+    embed.clearStoredData();
+}
 ```
 
 ### Customization
