@@ -481,12 +481,14 @@
             status.id = `${this.instanceId}-status`;
 
             // Build modal structure
-            fileUpload.appendChild(fileInput);
-            fileUpload.appendChild(fileLabel);
-            fileUpload.appendChild(fileName);
+            if (this.config.showFiles) {
+                fileUpload.appendChild(fileInput);
+                fileUpload.appendChild(fileLabel);
+                fileUpload.appendChild(fileName);
+                inputContainer.appendChild(fileUpload);
+            }
 
             inputContainer.appendChild(textarea);
-            inputContainer.appendChild(fileUpload);
             inputContainer.appendChild(submitButton);
             inputContainer.appendChild(status);
 
@@ -505,14 +507,16 @@
             shadowRoot.appendChild(style);
             shadowRoot.appendChild(container);
 
-            // Handle file selection
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    fileName.textContent = e.target.files[0].name;
-                } else {
-                    fileName.textContent = 'No file selected';
-                }
-            });
+            // Handle file selection - only if showFiles is enabled
+            if (this.config.showFiles) {
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        fileName.textContent = e.target.files[0].name;
+                    } else {
+                        fileName.textContent = 'No file selected';
+                    }
+                });
+            }
         }
 
         async loadWasm() {
@@ -796,6 +800,7 @@
 
             const message = this.shadowRoot.getElementById(`${this.instanceId}-message`).value.trim();
             const fileInput = this.shadowRoot.getElementById(`${this.instanceId}-file`);
+            const fileNameElement = this.shadowRoot.getElementById(`${this.instanceId}-filename`);
 
             if (!message) {
                 this.showStatus('error', 'Please enter a message');
@@ -820,11 +825,11 @@
             // Reset form
             this.shadowRoot.getElementById(`${this.instanceId}-message`).value = '';
             if (fileInput) fileInput.value = '';
-            this.shadowRoot.getElementById(`${this.instanceId}-filename`).textContent = 'No file selected';
+            if (fileNameElement) fileNameElement.textContent = 'No file selected';
 
             try {
                 let result;
-                if (this.config.showFiles && fileInput.files.length > 0) {
+                if (this.config.showFiles && fileInput && fileInput.files.length > 0) {
                     const file = fileInput.files[0];
                     const fileBuffer = await file.arrayBuffer();
                     const fileData = new Uint8Array(fileBuffer);
