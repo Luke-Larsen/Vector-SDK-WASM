@@ -205,39 +205,81 @@
             // Create shadow DOM for styling isolation
             const shadowRoot = this.attachShadow({ mode: 'open' });
 
-            // Minimal styles
+            // Enhanced styles with CSS variables for theming
             const style = document.createElement('style');
             style.textContent = `
                 :host {
                     display: block;
                 }
+
+                /* CSS Variables for theming */
+                :root {
+                    --vector-support-primary-color: ${this.config.buttonColor};
+                    --vector-support-primary-hover: ${this._darkenColor(this.config.buttonColor, 10)};
+                    --vector-support-background: #ffffff;
+                    --vector-support-text: #333333;
+                    --vector-support-secondary-text: #666666;
+                    --vector-support-border: #e0e0e0;
+                    --vector-support-user-message-bg: #e3f2fd;
+                    --vector-support-admin-message-bg: #f8f9fa;
+                    --vector-support-message-text: #333333;
+                    --vector-support-sender-text: #666666;
+                    --vector-support-time-text: #999999;
+                    --vector-support-success-bg: #d4edda;
+                    --vector-support-success-text: #155724;
+                    --vector-support-error-bg: #f8d7da;
+                    --vector-support-error-text: #721c24;
+                    --vector-support-loading-bg: #d1ecf1;
+                    --vector-support-loading-text: #0c5460;
+                    --vector-support-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                    --vector-support-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    --vector-support-border-radius: 8px;
+                    --vector-support-border-radius-sm: 4px;
+                    --vector-support-transition: all 0.2s ease;
+                }
+
                 .vector-support-container {
                     position: ${this.config.position === 'fixed' ? 'fixed' : 'relative'};
                     ${this.config.position === 'fixed' ? 'bottom: 20px; right: 20px;' : ''}
                     z-index: 9999;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
                     max-width: 400px;
                     width: 100%;
                 }
+
                 .vector-support-button {
-                    background-color: ${this.config.buttonColor};
+                    background-color: var(--vector-support-primary-color);
                     color: white;
                     border: none;
                     padding: 12px 20px;
                     font-size: 14px;
-                    border-radius: 6px;
+                    font-weight: 500;
+                    border-radius: var(--vector-support-border-radius);
                     cursor: pointer;
-                    transition: background-color 0.2s;
+                    transition: var(--vector-support-transition);
                     width: 100%;
                     box-sizing: border-box;
+                    box-shadow: var(--vector-support-shadow-sm);
+                    backdrop-filter: blur(10px);
+                    background-image: linear-gradient(135deg, var(--vector-support-primary-color), ${this._darkenColor(this.config.buttonColor, 15)});
                 }
+
                 .vector-support-button:hover {
                     opacity: 0.9;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
                 }
+
+                .vector-support-button:active {
+                    transform: translateY(0);
+                }
+
                 .vector-support-button:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
+                    transform: none;
                 }
+
                 .vector-support-modal {
                     display: none;
                     position: fixed;
@@ -249,34 +291,55 @@
                     z-index: 10000;
                     align-items: center;
                     justify-content: center;
+                    backdrop-filter: blur(4px);
+                    animation: var(--vector-support-transition);
                 }
+
                 .vector-support-modal-content {
-                    background: white;
+                    background: var(--vector-support-background);
                     padding: 0;
-                    border-radius: 8px;
+                    border-radius: var(--vector-support-border-radius);
                     width: 90%;
                     max-width: 400px;
                     max-height: 80vh;
                     display: flex;
                     flex-direction: column;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                    box-shadow: var(--vector-support-shadow);
+                    overflow: hidden;
+                    animation: vector-support-fade-in 0.2s ease-out;
                 }
+
+                @keyframes vector-support-fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
                 .vector-support-modal-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     padding: 16px 20px;
-                    border-bottom: 1px solid #eee;
-                    background: white;
+                    border-bottom: 1px solid var(--vector-support-border);
+                    background: var(--vector-support-background);
                     position: sticky;
                     top: 0;
                     z-index: 1;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                 }
+
                 .vector-support-modal-title {
                     font-size: 18px;
                     font-weight: 600;
                     margin: 0;
+                    color: var(--vector-support-text);
                 }
+
                 .vector-support-close {
                     background: none;
                     border: none;
@@ -288,7 +351,16 @@
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    color: var(--vector-support-secondary-text);
+                    transition: var(--vector-support-transition);
+                    border-radius: 50%;
                 }
+
+                .vector-support-close:hover {
+                    background-color: rgba(0, 0, 0, 0.05);
+                    color: var(--vector-support-text);
+                }
+
                 .vector-support-messages-container {
                     flex: 1;
                     padding: 16px;
@@ -296,116 +368,245 @@
                     background-color: #f9f9f9;
                     display: flex;
                     flex-direction: column;
+                    scroll-behavior: smooth;
                 }
+
+                .vector-support-messages-container::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .vector-support-messages-container::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 3px;
+                }
+
+                .vector-support-messages-container::-webkit-scrollbar-thumb {
+                    background: #c1c1c1;
+                    border-radius: 3px;
+                }
+
+                .vector-support-messages-container::-webkit-scrollbar-thumb:hover {
+                    background: #a8a8a8;
+                }
+
                 .vector-support-message {
                     margin-bottom: 12px;
-                    padding: 10px 12px;
-                    border-radius: 6px;
-                    max-width: 80%;
+                    padding: 12px 14px;
+                    border-radius: var(--vector-support-border-radius-sm);
+                    max-width: 85%;
                     word-wrap: break-word;
                     position: relative;
+                    transition: var(--vector-support-transition);
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
                 }
+
                 .vector-support-message.user {
-                    background-color: #e3f2fd;
+                    background-color: var(--vector-support-user-message-bg);
                     align-self: flex-end;
                     border-bottom-right-radius: 2px;
+                    color: var(--vector-support-message-text);
                 }
+
                 .vector-support-message.admin {
-                    background-color: #f1f1f1;
+                    background-color: var(--vector-support-admin-message-bg);
                     align-self: flex-start;
                     border-bottom-left-radius: 2px;
+                    color: var(--vector-support-message-text);
                 }
+
                 .vector-support-message-sender {
                     font-weight: 600;
                     font-size: 12px;
-                    margin-bottom: 4px;
+                    margin-bottom: 6px;
+                    color: var(--vector-support-sender-text);
                 }
+
                 .vector-support-message-content {
                     font-size: 14px;
                     line-height: 1.4;
+                    color: var(--vector-support-message-text);
                 }
+
                 .vector-support-message-time {
                     font-size: 10px;
-                    color: #999;
-                    margin-top: 4px;
+                    color: var(--vector-support-time-text);
+                    margin-top: 6px;
                     text-align: right;
                 }
+
                 .vector-support-input-container {
                     padding: 16px;
-                    border-top: 1px solid #eee;
-                    background: white;
+                    border-top: 1px solid var(--vector-support-border);
+                    background: var(--vector-support-background);
                     display: flex;
                     flex-direction: column;
                     gap: 12px;
                 }
+
                 .vector-support-textarea {
                     width: 100%;
                     min-height: 80px;
-                    padding: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
+                    padding: 12px;
+                    border: 1px solid var(--vector-support-border);
+                    border-radius: var(--vector-support-border-radius-sm);
                     font-size: 14px;
                     resize: vertical;
                     box-sizing: border-box;
+                    transition: var(--vector-support-transition);
+                    font-family: inherit;
+                    color: var(--vector-support-text);
                 }
+
+                .vector-support-textarea:focus {
+                    outline: none;
+                    border-color: var(--vector-support-primary-color);
+                    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+                }
+
                 .vector-support-file-upload {
                     margin-bottom: 12px;
                     display: flex;
                     flex-direction: column;
                     gap: 8px;
                 }
+
                 .vector-support-file-input {
                     display: none;
                 }
+
                 .vector-support-file-label {
                     display: inline-block;
-                    padding: 8px 12px;
-                    background-color: #f0f0f0;
-                    border-radius: 4px;
+                    padding: 10px 16px;
+                    background-color: var(--vector-support-border);
+                    border-radius: var(--vector-support-border-radius-sm);
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: 13px;
                     text-align: center;
+                    transition: var(--vector-support-transition);
+                    color: var(--vector-support-text);
+                    border: 1px dashed var(--vector-support-border);
                 }
+
+                .vector-support-file-label:hover {
+                    background-color: rgba(0, 0, 0, 0.02);
+                    border-color: var(--vector-support-primary-color);
+                }
+
                 .vector-support-file-name {
                     font-size: 12px;
-                    color: #666;
+                    color: var(--vector-support-secondary-text);
                     word-break: break-all;
                     text-align: center;
+                    padding: 4px;
                 }
+
                 .vector-support-submit {
-                    background-color: ${this.config.buttonColor};
+                    background-color: var(--vector-support-primary-color);
                     color: white;
                     border: none;
-                    padding: 10px 16px;
+                    padding: 12px 16px;
                     font-size: 14px;
-                    border-radius: 4px;
+                    font-weight: 500;
+                    border-radius: var(--vector-support-border-radius-sm);
                     cursor: pointer;
+                    transition: var(--vector-support-transition);
+                    background-image: linear-gradient(135deg, var(--vector-support-primary-color), ${this._darkenColor(this.config.buttonColor, 15)});
                 }
+
+                .vector-support-submit:hover {
+                    opacity: 0.9;
+                    transform: translateY(-1px);
+                }
+
+                .vector-support-submit:active {
+                    transform: translateY(0);
+                }
+
                 .vector-support-submit:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
+                    transform: none;
                 }
+
                 .vector-support-status {
                     margin-top: 8px;
-                    padding: 8px;
-                    border-radius: 4px;
-                    font-size: 12px;
+                    padding: 10px 12px;
+                    border-radius: var(--vector-support-border-radius-sm);
+                    font-size: 13px;
                     display: none;
+                    text-align: center;
+                    transition: var(--vector-support-transition);
                 }
+
                 .vector-support-status.success {
-                    background-color: #d4edda;
-                    color: #155724;
+                    background-color: var(--vector-support-success-bg);
+                    color: var(--vector-support-success-text);
                     display: block;
                 }
+
                 .vector-support-status.error {
-                    background-color: #f8d7da;
-                    color: #721c24;
+                    background-color: var(--vector-support-error-bg);
+                    color: var(--vector-support-error-text);
                     display: block;
                 }
+
                 .vector-support-status.loading {
-                    background-color: #d1ecf1;
-                    color: #0c5460;
+                    background-color: var(--vector-support-loading-bg);
+                    color: var(--vector-support-loading-text);
                     display: block;
+                }
+
+                /* Responsive adjustments */
+                @media (max-width: 480px) {
+                    .vector-support-modal-content {
+                        width: 95%;
+                        max-width: 350px;
+                    }
+
+                    .vector-support-message {
+                        max-width: 88%;
+                        padding: 10px 12px;
+                    }
+
+                    .vector-support-input-container {
+                        padding: 12px;
+                    }
+
+                    .vector-support-textarea {
+                        min-height: 70px;
+                        padding: 10px;
+                    }
+                }
+
+                /* Dark mode support */
+                @media (prefers-color-scheme: dark) {
+                    :root {
+                        --vector-support-background: #1e1e1e;
+                        --vector-support-text: #e0e0e0;
+                        --vector-support-secondary-text: #aaaaaa;
+                        --vector-support-border: #444444;
+                        --vector-support-user-message-bg: #2a343f;
+                        --vector-support-admin-message-bg: #2d2d2d;
+                        --vector-support-message-text: #e0e0e0;
+                        --vector-support-sender-text: #aaaaaa;
+                        --vector-support-time-text: #888888;
+                        --vector-support-success-bg: #1b4332;
+                        --vector-support-success-text: #4ade80;
+                        --vector-support-error-bg: #412227;
+                        --vector-support-error-text: #f87171;
+                        --vector-support-loading-bg: #1e40af;
+                        --vector-support-loading-text: #60a5fa;
+                        --vector-support-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                        --vector-support-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.2);
+                    }
+
+                    .vector-support-modal {
+                        background-color: rgba(0, 0, 0, 0.7);
+                    }
+
+                    .vector-support-messages-container {
+                        background-color: #252525;
+                    }
                 }
             `;
 
@@ -438,11 +639,14 @@
             closeButton.className = 'vector-support-close';
             closeButton.innerHTML = '&times;';
             closeButton.addEventListener('click', () => this.closeModal());
+            closeButton.setAttribute('aria-label', 'Close support chat');
 
             // Messages container
             const messagesContainer = document.createElement('div');
             messagesContainer.className = 'vector-support-messages-container';
             messagesContainer.id = `${this.instanceId}-messages`;
+            messagesContainer.setAttribute('role', 'log');
+            messagesContainer.setAttribute('aria-label', 'Support chat messages');
 
             // Input container
             const inputContainer = document.createElement('div');
@@ -452,6 +656,7 @@
             textarea.className = 'vector-support-textarea';
             textarea.placeholder = this.config.placeholder;
             textarea.id = `${this.instanceId}-message`;
+            textarea.setAttribute('aria-label', 'Type your message here');
 
             const fileUpload = document.createElement('div');
             fileUpload.className = 'vector-support-file-upload';
@@ -460,6 +665,7 @@
             fileInput.type = 'file';
             fileInput.className = 'vector-support-file-input';
             fileInput.id = `${this.instanceId}-file`;
+            fileInput.setAttribute('aria-label', 'Attach file');
 
             const fileLabel = document.createElement('label');
             fileLabel.className = 'vector-support-file-label';
@@ -475,10 +681,13 @@
             submitButton.className = 'vector-support-submit';
             submitButton.textContent = 'Send';
             submitButton.addEventListener('click', () => this.submitTicket());
+            submitButton.setAttribute('aria-label', 'Send message');
 
             const status = document.createElement('div');
             status.className = 'vector-support-status';
             status.id = `${this.instanceId}-status`;
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
 
             // Build modal structure
             if (this.config.showFiles) {
@@ -517,6 +726,32 @@
                     }
                 });
             }
+
+            // Handle Enter key in textarea
+            textarea.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.submitTicket();
+                }
+            });
+        }
+
+        /**
+         * Darken a color by percentage
+         */
+        _darkenColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) - amt;
+            const G = (num >> 8 & 0x00FF) - amt;
+            const B = (num & 0x0000FF) - amt;
+
+            return `#${(
+                0x1000000 +
+                (R < 0 ? 0 : R) * 0x10000 +
+                (G < 0 ? 0 : G) * 0x100 +
+                (B < 0 ? 0 : B)
+            ).toString(16).slice(1)}`;
         }
 
         async loadWasm() {
@@ -731,6 +966,14 @@
 
             // Display message history
             this.renderMessages();
+
+            // Focus on textarea for better UX
+            setTimeout(() => {
+                const textarea = this.shadowRoot.getElementById(`${this.instanceId}-message`);
+                if (textarea) {
+                    textarea.focus();
+                }
+            }, 100);
         }
 
         closeModal() {
@@ -769,6 +1012,7 @@
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `vector-support-message ${message.sender}`;
+            messageDiv.setAttribute('role', 'article');
 
             const senderDiv = document.createElement('div');
             senderDiv.className = 'vector-support-message-sender';
