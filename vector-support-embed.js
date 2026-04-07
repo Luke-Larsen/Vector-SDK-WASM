@@ -260,7 +260,6 @@
                     width: 100%;
                     box-sizing: border-box;
                     box-shadow: var(--vector-support-shadow-sm);
-                    backdrop-filter: blur(10px);
                     background-image: linear-gradient(135deg, var(--vector-support-primary-color), ${this._darkenColor(this.config.buttonColor, 15)});
                 }
 
@@ -287,7 +286,7 @@
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background-color: rgba(0, 0, 0, 0.5);
+                    background-color: rgba(0, 0, 0, 0.7);
                     z-index: 10000;
                     align-items: center;
                     justify-content: center;
